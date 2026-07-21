@@ -1,0 +1,263 @@
+{
+  "sinpe": {
+    "phone": "+506 8888 8888",
+    "holder": "Fundación Un Nuevo Comienzo C.R.",
+    "idNumber": "3-101-123456",
+    "instructions": "Envía tu contribución mediante SINPE Móvil al número indicado y el monto se acreditará directamente a la alimentación y educación de nuestros niños."
+  },
+  "paypal": {
+    "email": "fundacionunnuevocomienzocr@gmail.com",
+    "currency": "USD",
+    "active": true
+  },
+  "bankAccounts": [
+    {
+      "bankName": "Banco de Costa Rica (BCR)",
+      "currency": "Colones (CRC)",
+      "iban": "CR55015201001012345678",
+      "holder": "Fundación Un Nuevo Comienzo C.R.",
+      "idType": "Cédula Jurídica",
+      "idNumber": "3-101-123456"
+    },
+    {
+      "bankName": "Banco de Costa Rica (BCR)",
+      "currency": "Dólares (USD)",
+      "iban": "CR88015201001098765432",
+      "holder": "Fundación Un Nuevo Comienzo C.R.",
+      "idType": "Cédula Jurídica",
+      "idNumber": "3-101-123456"
+    },
+    {
+      "bankName": "Banco Nacional (BN)",
+      "currency": "Colones (CRC)",
+      "iban": "CR12015108001024681357",
+      "holder": "Fundación Un Nuevo Comienzo C.R.",
+      "idType": "Cédula Jurídica",
+      "idNumber": "3-101-123456"
+    }
+  ],
+  "hero": {
+    "title": "Fundación Un Nuevo Comienzo",
+    "subtitle": "Por un cambio positivo y duradero en nuestra niñez",
+    "imageUrl": "https://i.postimg.cc/cJ7rKXpN/www-uwlm-ca-949-all-that-kids-can-be-v3.jpg",
+    "ctaText": "Quiero Apoyar"
+  },
+  "mision": {
+    "title": "Misión",
+    "description": "Promover y defender mediante procesos educativos, los deberes y derechos de las personas menores de edad en estado de pobreza.",
+    "iconName": "Heart"
+  },
+  "vision": {
+    "title": "Visión",
+    "description": "Ser la mejor alternativa de desarrollo cognoscitivo, especializada en generar espacios innovadores en los campos de la educación, tecnología, arte y deporte.",
+    "iconName": "BookOpen"
+  },
+  "objetivo": {
+    "title": "Objetivo",
+    "description": "Contribuir de forma integral a la transformación y fortalecimiento de una mejor sociedad, comenzando por la niñez y hasta los padres.",
+    "iconName": "Users"
+  },
+  "about": {
+    "whoWeAreTitle": "¿Quiénes Somos?",
+    "whoWeAreSub": "FUNDACIÓN UN NUEVO COMIENZO",
+    "whoWeAreText": "Estamos dedicados a la atención de las personas menores de edad que se encuentran en condiciones de pobreza y pobreza extrema; esto lo hacemos por medio de programas preventivos, que son impartidos en módulos de Refuerzo escolar, psicología, valores, arte, cultura, deporte y un Centro de Alimentación.",
+    "whoWeAreImage": "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=800",
+    "detailedText1": "Fundación un Nuevo Comienzo, somos una organización de bien social, acreditada por el PANI (Patronato Nacional de la Infancia). Nos dedicamos a la atención de las personas menores de edad que se encuentran en condiciones de pobreza, por medio de programas preventivos que les ayuda a desarrollar su máximo potencial para la edificación de una comunidad más segura, solidaria, inclusiva y participativa.",
+    "detailedText2": "Siendo conscientes de las secuelas negativas que le causa a la población menor de edad vivir en los barrios menos favorecidos del distrito de Pavas, realizamos actividades públicas con el fin de atraer a este sector de la sociedad e incorporarlo a nuestra fundación; con el objetivo de estimular su avance cognoscitivo, creativo y productivo.",
+    "detailedText3": "La ideología de trabajo que practicamos es: “Ser formadores de futuros líderes comunitarios”, pues capacitamos a los integrantes y al mismo tiempo les inculcamos la responsabilidad de instruir a otros en la misma forma en que ellos están siendo enseñados; de este modo generaremos puntos perdurables para el desarrollo sostenible de la educación, el arte, el deporte y la cultura. Es así como transformamos vidas que cambian vidas.",
+    "historyText": "Desde hace más de 20 años hemos sido una fundación de hecho, sin embargo, desde el 20 de marzo de 2015 se encuentra debidamente inscrita ante el Registro Público, el Ministerio de Salud, el Ministerio de Hacienda, Dirección General de Tributación. Actualmente formamos parte del programa de restauración del Juzgado Penal Juvenil y de Justicia Juvenil Restaurativa del Poder Judicial. También pertenecemos a la Coalición Comunitaria de Las Pavas; y somos actores activos de los festivales artísticos-culturales de la Municipalidad de San José."
+  },
+  "programs": [
+    {
+      "id": "refuerzo-escolar",
+      "name": "Refuerzo Escolar",
+      "description": "Fundación un Nuevo Comienzo ha orientado su esfuerzo al apoyo de la PME para incentivar la permanencia en el sistema educativo, velando para que concluyan exitosamente sus ciclos de estudio.",
+      "imageUrl": "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": "comedor",
+      "name": "Comedor",
+      "description": "Ofrecemos alimentación complementaria a todos los niños, niñas, adolescentes y al personal. Es así como promovemos hábitos alimentarios saludables, hábitos de higiene y comportamientos adecuados en torno a la alimentación diaria.",
+      "imageUrl": "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": "coro",
+      "name": "Coro Infantil",
+      "description": "El objetivo es enseñarles a cantar y proyectarles más allá de sus comunidades, llevándolos a actividades públicas en distintos distritos y empresas.",
+      "imageUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+      "id": "deporte-danza",
+      "name": "Deporte y Danza",
+      "description": "Fomentamos la salud física, la disciplina, el trabajo en equipo y la expresión corporal a través de talleres recreativos de fútbol, atletismo y danza folclórica.",
+      "imageUrl": "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=600"
+    }
+  ],
+  "quoteBanner": {
+    "title": "Amor, Convicción y Sensibilidad",
+    "text1": "Toda esta labor la realizamos, primero por amor, convicción y sensibilidad; y segundo, porque muchos pedagogos, psicólogos y educadores, coinciden que la educación y formación de valores en los niños y niñas debe iniciarse a temprana edad para así evitar en un futuro la distorsión de la personalidad.",
+    "text2": "Nuestra propuesta ha reducido significativamente la congruencia de la niñez y adolescencia a los lugares de ocio, pues hemos logramos incrementar los espacios de alcance y avance.",
+    "subtitle": "Igualdad de Oportunidades",
+    "imageUrl": "https://images.unsplash.com/photo-1547032175-7fc8c7bd15b3?auto=format&fit=crop&q=80&w=800"
+  },
+  "founders": [
+    {
+      "id": "f-1",
+      "name": "Gerson López Mora",
+      "role": "Presidente",
+      "description": "Líder comprometido con el desarrollo integral de la niñez costarricense, con amplia experiencia en la gestión de proyectos de bienestar social.",
+      "imageUrl": "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=300"
+    },
+    {
+      "id": "f-2",
+      "name": "Rebeca Céspedes Chinchilla",
+      "role": "Secretaria Administrativa",
+      "description": "Encargada de coordinar y velar por el orden administrativo de la fundación, asegurando que cada donación e insumo llegue a su destino correspondiente.",
+      "imageUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300"
+    },
+    {
+      "id": "f-3",
+      "name": "Michael López",
+      "role": "Profesor Suplente / TI",
+      "description": "Facilitador del área tecnológica y de informática, enfocado en reducir la brecha digital en la niñez y potenciar sus habilidades técnicas.",
+      "imageUrl": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=300"
+    }
+  ],
+  "sponsors": [
+    {
+      "id": "sp-1",
+      "name": "ICE (Instituto Costarricense de Electricidad)",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Logo_del_Instituto_Costarricense_de_Electricidad.png",
+      "description": "Apoyo institucional y tecnológico para los programas comunitarios.",
+      "websiteUrl": "https://www.grupoice.com"
+    },
+    {
+      "id": "sp-2",
+      "name": "ULACIT",
+      "logoUrl": "https://www.ulacit.ac.cr/wp-content/uploads/2021/08/logo-ulacit-web.png",
+      "description": "Colaboración académica y programas de voluntariado universitario.",
+      "websiteUrl": "https://www.ulacit.ac.cr"
+    },
+    {
+      "id": "sp-3",
+      "name": "Universidad Latina de Costa Rica",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Logo_ulatina.png",
+      "description": "Alianza educativa para el refuerzo escolar y talleres de desarrollo.",
+      "websiteUrl": "https://www.ulatina.ac.cr"
+    }
+  ],
+  "gallery": [
+    "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=600",
+    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=600",
+    "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&q=80&w=600",
+    "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&q=80&w=600",
+    "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600",
+    "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=600",
+    "https://images.unsplash.com/photo-1547032175-7fc8c7bd15b3?auto=format&fit=crop&q=80&w=600",
+    "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&q=80&w=600",
+    "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&q=80&w=600"
+  ],
+  "contact": {
+    "address": "350 metros al Norte del INA de Villa Esperanza de Pavas, San José, Costa Rica.",
+    "phone": "+506 4031 6633",
+    "email": "fundacionunnuevocomienzocr@gmail.com",
+    "hours": "Lunes — Viernes 8:00am - 5:00pm",
+    "facebookUrl": "https://www.facebook.com/FundacionUnNuevoComienzoCR",
+    "instagramUrl": "https://www.instagram.com/fundacionunnuevocomienzocr",
+    "tiktokUrl": "https://www.tiktok.com/@fundacionunnuevocomienzocr",
+    "youtubeUrl": "",
+    "twitterUrl": "",
+    "linkedinUrl": "",
+    "customSocialLinks": [],
+    "coordinates": {
+      "lat": 9.94722,
+      "lng": -84.14861
+    }
+  },
+  "patrocinioBlock": {
+    "title": "Patrocinio",
+    "description": "Si usted desea donar, contáctese con nosotros y ayúdanos a brindar más oportunidades a los niños de nuestra ONG."
+  },
+  "voluntariadoBlock": {
+    "title": "Voluntariado",
+    "description": "Sé parte de nuestro equipo, ayudando como voluntario en Fundación Un Nuevo Comienzo. ¡Contáctese con nosotros!"
+  },
+  "donationGoal": {
+    "monthlyGoal": 2500000,
+    "currentAmount": 1350000,
+    "currency": "CRC"
+  },
+  "testimonials": [
+    {
+      "id": "t-1",
+      "name": "Juan David",
+      "role": "Beneficiario del programa",
+      "text": "La fundación me ha ayudado con mis tareas de la escuela y me dan comida muy rica todos los días en el comedor. ¡Me encanta cantar en el coro infantil!",
+      "imageUrl": "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&q=80&w=200"
+    },
+    {
+      "id": "t-2",
+      "name": "Rebeca Céspedes",
+      "role": "Colaboradora Voluntaria",
+      "text": "Apoyar como voluntaria en Un Nuevo Comienzo es ver la esperanza en acción. Cada sonrisa y logro escolar de los niños vale todo el esfuerzo.",
+      "imageUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200"
+    },
+    {
+      "id": "t-3",
+      "name": "Carlos Ortiz",
+      "role": "Donante Solidario",
+      "text": "Saber que mi aporte mensual va directo a garantizar la alimentación saludable de niños de Pavas me da total tranquilidad y satisfacción. Transparencia absoluta.",
+      "imageUrl": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200"
+    }
+  ],
+  "branding": {
+    "logoUrl": "",
+    "bannerUrl": ""
+  },
+  "whatsapp": {
+    "phone": "50688888888",
+    "message": "¡Hola! Deseo comunicarme con la administración de la Fundación Un Nuevo Comienzo C.R. para colaborar u obtener información."
+  },
+  "faqs": [
+    {
+      "id": "faq-1",
+      "question": "¿Cómo puedo estar seguro de que mi donación llega a los niños?",
+      "answer": "En la Fundación Un Nuevo Comienzo, mantenemos transparencia absoluta. Todas las donaciones se registran y auditan meticulosamente. Puedes ver el impacto de tu ayuda reflejado en nuestro comedor infantil diario, el aula de refuerzo escolar y nuestras publicaciones semanales. Emitimos facturas autorizadas si lo requieres.",
+      "category": "donaciones"
+    },
+    {
+      "id": "faq-2",
+      "question": "¿Qué formas de donación aceptan?",
+      "answer": "Aceptamos transferencias vía SINPE Móvil al número oficial de la fundación, depósitos bancarios a nuestras cuentas de IBAN (BCR y Banco Nacional) tanto en colones como en dólares, y donaciones internacionales seguras con tarjeta a través de PayPal.",
+      "category": "donaciones"
+    },
+    {
+      "id": "faq-3",
+      "question": "¿Puedo donar alimentos o materiales escolares?",
+      "answer": "¡Claro que sí! Agradecemos mucho las donaciones en especie, especialmente alimentos no perecederos para el comedor diario de los niños, y útiles escolares (cuadernos, lápices, mochilas, libros) para el programa de refuerzo educativo. Contáctanos para coordinar la entrega.",
+      "category": "donaciones"
+    },
+    {
+      "id": "faq-4",
+      "question": "¿Cuáles son los requisitos para unirse como voluntario?",
+      "answer": "El principal requisito es tener el deseo de servir con amor y sensibilidad hacia el desarrollo infantil. Pedimos compromiso de tiempo (ya sean unas horas semanales o apoyo en eventos especiales) y ser mayor de edad o contar con autorización. ¡Toda ayuda suma!",
+      "category": "voluntariado"
+    },
+    {
+      "id": "faq-5",
+      "question": "¿En qué áreas colaboran los voluntarios?",
+      "answer": "Nuestros voluntarios apoyan principalmente en tres frentes: asistencia educativa en el programa de refuerzo escolar, apoyo logístico en el comedor diario para los niños, y la impartición de talleres especiales de arte, música, deporte, danza o tecnología.",
+      "category": "voluntariado"
+    },
+    {
+      "id": "faq-6",
+      "question": "¿La fundación cuenta con respaldo institucional?",
+      "answer": "Sí, somos una organización de bien social formalmente constituida desde hace más de 20 años y debidamente registrada en el Registro Público de Costa Rica, PANI (Patronato Nacional de la Infancia), Ministerio de Salud y Ministerio de Hacienda.",
+      "category": "general"
+    }
+  ],
+  "adminCredentials": {
+    "username": "admin",
+    "password": "admin123"
+  }
+}

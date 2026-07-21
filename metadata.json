@@ -1,0 +1,6 @@
+{
+  "name": "Fundación Un Nuevo Comienzo CR",
+  "description": "Sitio web oficial de la Fundación Un Nuevo Comienzo (Costa Rica) con panel de administración (CMS) para gestión de contenidos y pasarela de donaciones integrada (SINPE Móvil, PayPal y transferencias bancarias).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
