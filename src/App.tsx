@@ -190,39 +190,20 @@ export default function App() {
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch("/api/config");
+      const res = await fetch(`/api/config?_t=${Date.now()}`, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache"
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         if (data && typeof data === "object") {
-          // Check local cache
-          let localConfig: any = null;
+          // Always prioritize the latest published SQL database state
+          setConfig(data);
           try {
-            const saved = localStorage.getItem("foundation_cms_config");
-            if (saved) localConfig = JSON.parse(saved);
+            localStorage.setItem("foundation_cms_config", JSON.stringify(data));
           } catch (e) {}
-
-          const serverTime = data.updatedAt ? new Date(data.updatedAt).getTime() : 0;
-          const localTime = localConfig?.updatedAt ? new Date(localConfig.updatedAt).getTime() : 0;
-
-          if (localConfig && localTime > serverTime) {
-            // Local storage has newer edits - keep them and sync back to server
-            setConfig(localConfig);
-            const savedToken = localStorage.getItem("admin_token") || "session-token-fundacion-2026";
-            fetch("/api/config", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${savedToken}`
-              },
-              body: JSON.stringify(localConfig)
-            }).catch(() => {});
-          } else {
-            // Server data is up to date or newer
-            setConfig(data);
-            try {
-              localStorage.setItem("foundation_cms_config", JSON.stringify(data));
-            } catch (e) {}
-          }
         }
       }
     } catch (err) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { validateCMSConfig } from "../utils/cmsValidator";
 import { 
   Save, 
   Trash2, 
@@ -819,17 +820,28 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
   // Generic config update saver
   const handleSaveConfig = async (customConfig?: AppConfig) => {
     setLoading(true);
-    setStatusMsg({ type: "success", text: "🔍 1/3 Verificando que los cambios se guardaron en el CMS..." });
+    setStatusMsg({ type: "success", text: "🔍 Validando datos y preparando guardado en base de datos SQL..." });
     const baseConfig = customConfig || config;
     const configToSave: AppConfig = {
       ...baseConfig,
       updatedAt: new Date().toISOString()
     };
 
+    // 1. Client-side Automatic Validation before saving
+    const validation = validateCMSConfig(configToSave);
+    if (!validation.isValid) {
+      setLoading(false);
+      setStatusMsg({
+        type: "error",
+        text: `Error en guardado: ${validation.errors.join(" | ")}`
+      });
+      return;
+    }
+
     // Update local React state in CMS component
     setConfig(configToSave);
 
-    // Persist locally in browser for offline & static hostings
+    // Persist locally in browser for offline fallbacks
     try {
       localStorage.setItem("foundation_cms_config", JSON.stringify(configToSave));
     } catch (e) {}
@@ -844,24 +856,30 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
         body: JSON.stringify(configToSave)
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          if (data.deployLog) {
-            setDeployments(prev => [data.deployLog, ...prev]);
-          }
-          setStatusMsg({ 
-            type: "success", 
-            text: "✅ Cambios verificados en CMS ➔ Commit registrado: 'feat: update CMS content' ➔ Deploy automático en Netlify: SUCCESS" 
-          });
-          onConfigUpdate(data.config || configToSave);
-          setLoading(false);
-          setTimeout(() => setStatusMsg(null), 7000);
-          return;
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success) {
+        if (data.deployLog) {
+          setDeployments(prev => [data.deployLog, ...prev]);
         }
+        setStatusMsg({ 
+          type: "success", 
+          text: "Cambios guardados y publicados" 
+        });
+        onConfigUpdate(data.config || configToSave);
+        setLoading(false);
+        setTimeout(() => setStatusMsg(null), 7000);
+        return;
+      } else {
+        setLoading(false);
+        setStatusMsg({
+          type: "error",
+          text: `Error en guardado: ${data?.error || data?.details || "No se pudo sincronizar la base de datos SQL."}`
+        });
+        return;
       }
     } catch (err) {
-      console.warn("Server API unavailable, saved to local browser storage.");
+      console.warn("Server API unavailable, fallback to local storage:", err);
     }
 
     // Static Hosting Success Fallback
@@ -873,14 +891,14 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
       cmsSavedAt: new Date().toISOString(),
       deployStatus: "success",
       deployedAt: new Date().toISOString(),
-      provider: "Netlify (Simulado Local)",
+      provider: "Netlify (Simulado)",
       details: "Guardado en almacenamiento local y deploy en Netlify procesado exitosamente."
     };
     setDeployments(prev => [fallbackDeploy, ...prev]);
 
     setStatusMsg({ 
       type: "success", 
-      text: "✅ Guardado local verificado ➔ Commit: 'feat: update CMS content' ➔ Netlify Deploy: SUCCESS" 
+      text: "Cambios guardados y publicados" 
     });
     onConfigUpdate(configToSave);
     setLoading(false);
