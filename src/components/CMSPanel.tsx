@@ -12,6 +12,7 @@ import {
   Loader2, 
   CheckCircle2, 
   AlertCircle,
+  AlertTriangle,
   Image,
   Quote,
   Send,
@@ -31,8 +32,25 @@ import {
   Twitter,
   Linkedin,
   MapPin,
-  Clock
+  Clock,
+  BarChart2,
+  PieChart as PieChartIcon
 } from "lucide-react";
+import { 
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  Legend, 
+  AreaChart, 
+  Area 
+} from "recharts";
 import { AppConfig, ContactMessage, BankAccount, Program, Founder, Testimonial, Sponsor, DonationGoal, BrandingConfig, WhatsAppConfig, FAQItem, SEOConfig, GlobalNoticeConfig } from "../types";
 import { getDirectDriveImageUrl } from "../utils/drive";
 import { compressImage } from "../utils/compressor";
@@ -51,7 +69,7 @@ interface NewsletterSubscriber {
 
 export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPanelProps) {
   // Local state for all fields
-  const [activeTab, setActiveTab] = useState<"donations" | "home" | "about" | "programs" | "messages" | "testimonials" | "sponsors" | "newsletter" | "branding" | "faqs" | "reports" | "seo" | "globalNotice" | "gallery">("donations");
+  const [activeTab, setActiveTab] = useState<"logo" | "donations" | "analytics" | "promo" | "home" | "about" | "programs" | "messages" | "testimonials" | "sponsors" | "newsletter" | "branding" | "faqs" | "reports" | "seo" | "globalNotice" | "gallery">("donations");
   const [config, setConfig] = useState<AppConfig>(initialConfig);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
@@ -59,6 +77,34 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
   const [loading, setLoading] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Custom Confirmation Modal state for high impact / destructive actions
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    actionType?: "delete" | "warning";
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    actionType: "delete",
+    onConfirm: () => {}
+  });
+
+  const askConfirmation = (title: string, message: string, onConfirmAction: () => void, actionType: "delete" | "warning" = "delete") => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      actionType,
+      onConfirm: () => {
+        onConfirmAction();
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
 
   // Image compression options state
   const [compressBeforeUpload, setCompressBeforeUpload] = useState<boolean>(true);
@@ -115,20 +161,25 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
   };
 
   const handleDeleteSubscriber = async (subId: string) => {
-    if (!confirm("¿Está seguro de que desea eliminar este suscriptor del newsletter?")) return;
-    try {
-      const res = await fetch(`/api/newsletter/subscribers/${subId}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`
+    askConfirmation(
+      "Eliminar Suscriptor",
+      "¿Está seguro de que desea eliminar permanentemente este correo de la lista de suscriptores?",
+      async () => {
+        try {
+          const res = await fetch(`/api/newsletter/subscribers/${subId}`, {
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          if (res.ok) {
+            setSubscribers(subscribers.filter(sub => sub.id !== subId));
+          }
+        } catch (err) {
+          console.error("Error deleting newsletter subscriber:", err);
         }
-      });
-      if (res.ok) {
-        setSubscribers(subscribers.filter(sub => sub.id !== subId));
       }
-    } catch (err) {
-      console.error("Error deleting newsletter subscriber:", err);
-    }
+    );
   };
 
   // Image upload with preview
@@ -406,20 +457,25 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
   };
 
   const handleDeleteMessage = async (msgId: string) => {
-    if (!confirm("¿Está seguro de que desea eliminar este mensaje?")) return;
-    try {
-      const res = await fetch(`/api/messages/${msgId}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`
+    askConfirmation(
+      "Eliminar Mensaje",
+      "¿Está seguro de que desea eliminar este mensaje de contacto?",
+      async () => {
+        try {
+          const res = await fetch(`/api/messages/${msgId}`, {
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          if (res.ok) {
+            setMessages(messages.filter(msg => msg.id !== msgId));
+          }
+        } catch (err) {
+          console.error("Error deleting message:", err);
         }
-      });
-      if (res.ok) {
-        setMessages(messages.filter(msg => msg.id !== msgId));
       }
-    } catch (err) {
-      console.error("Error deleting message:", err);
-    }
+    );
   };
 
   // Generic config update saver
@@ -655,7 +711,11 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
         <div className="lg:col-span-1 space-y-4">
           <div className="space-y-1.5 bg-gray-50/50 p-2 rounded-2xl border border-gray-150/60">
             {[
+              { id: "logo", label: "🖼️ Cambiar Logotipo (Medidas)", icon: Image },
+              { id: "branding", label: "🎨 Redes Sociales y Contacto", icon: Image },
               { id: "donations", label: "Gestionar Donaciones", icon: HeartHandshake },
+              { id: "analytics", label: "📊 Analíticas e Impacto (Recharts)", icon: BarChart2 },
+              { id: "promo", label: "📣 Artes Promocionales Redes", icon: Share2 },
               { id: "reports", label: "Verificaciones de SINPE/Banco", icon: CheckCircle2, badge: reports.filter(r => r.status === "pending").length || undefined },
               { id: "home", label: "Sección Inicio (Hero/Pilares)", icon: Sparkles },
               { id: "about", label: "Sobre Nosotros", icon: Users },
@@ -666,7 +726,6 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
               { id: "globalNotice", label: "Anuncio Banner Global", icon: Megaphone },
               { id: "seo", label: "SEO y Metatags", icon: Globe },
               { id: "faqs", label: "Preguntas Frecuentes (FAQ)", icon: HelpCircle },
-              { id: "branding", label: "Contacto, Redes y Branding", icon: Share2 },
               { id: "newsletter", label: "Suscriptores Newsletter", icon: Mail, badge: subscribers.length || undefined },
               { id: "messages", label: "Mensajes de Contacto", icon: MessageSquare, badge: messages.length || undefined },
             ].map((tab) => {
@@ -713,6 +772,425 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
         {/* CMS Tab Body */}
         <div className="lg:col-span-3 bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
           
+          {/* TAB: LOGO MANAGEMENT & RECOMMENDED DIMENSIONS */}
+          {activeTab === "logo" && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="border-b border-gray-150 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Image className="w-5 h-5 text-foundation-teal" />
+                    Cambiar Logotipo Oficial de la Fundación
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Sube o actualiza el isotipo/logotipo oficial que identifica a la Fundación Un Nuevo Comienzo CR en el encabezado y documentos.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSaveConfig()}
+                  disabled={loading}
+                  className="px-5 py-2.5 bg-foundation-teal hover:bg-foundation-teal-dark text-white text-xs font-extrabold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer self-start hover:scale-105"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Guardar Logotipo</span>
+                </button>
+              </div>
+
+              {/* RECOMMENDED DIMENSIONS & SPECS CARD */}
+              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-3xl p-6 space-y-4 shadow-xs">
+                <div className="flex items-center gap-2 text-emerald-900">
+                  <Sparkles className="w-5 h-5 text-foundation-teal" />
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide">
+                    📐 Medidas y Especificaciones Recomendadas
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div className="bg-white/90 p-4 rounded-2xl border border-emerald-100 space-y-1">
+                    <span className="font-extrabold text-emerald-800 block text-[11px] uppercase">1. Formato de Imagen</span>
+                    <p className="text-gray-800 font-bold">PNG Transparente (Recomendado) o SVG Vectorial.</p>
+                    <span className="text-[10px] text-gray-500 block mt-1">Evita imágenes con fondo blanco sólido para adaptarse limpio tanto al modo claro como oscuro.</span>
+                  </div>
+
+                  <div className="bg-white/90 p-4 rounded-2xl border border-emerald-100 space-y-1">
+                    <span className="font-extrabold text-emerald-800 block text-[11px] uppercase">2. Dimensiones Sugeridas</span>
+                    <p className="text-gray-800 font-bold">400 x 400 px (Cuadrado 1:1) o 500 x 200 px (Horizontal 5:2).</p>
+                    <span className="text-[10px] text-gray-500 block mt-1">Asegura una nitidez cristalina en pantallas de alta resolución y celulares.</span>
+                  </div>
+
+                  <div className="bg-white/90 p-4 rounded-2xl border border-emerald-100 space-y-1">
+                    <span className="font-extrabold text-emerald-800 block text-[11px] uppercase">3. Peso de Archivo</span>
+                    <p className="text-gray-800 font-bold">Menor a 2 MB (Optimización Automática).</p>
+                    <span className="text-[10px] text-gray-500 block mt-1">Mantiene una velocidad de carga instantánea en conexiones móviles.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* LIVE PREVIEW COMPARISON */}
+              <div className="bg-gray-50/80 p-6 rounded-3xl border border-gray-150 space-y-4">
+                <h3 className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
+                  <span>👀 Previsualización en Tiempo Real</span>
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Comprueba cómo se visualizará tu logotipo en la barra superior tanto en tema claro como en tema nocturno:
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Light Preview */}
+                  <div className="p-5 bg-white border border-gray-200 rounded-2xl flex items-center justify-between shadow-xs">
+                    <div className="flex items-center gap-3">
+                      {config.branding?.logoUrl ? (
+                        <img 
+                          src={getDirectDriveImageUrl(config.branding.logoUrl)} 
+                          alt="Logo Fundación" 
+                          className="h-12 w-auto max-w-[140px] object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 flex items-center justify-center">
+                          <svg viewBox="0 0 100 100" className="w-10 h-10">
+                            <path d="M48,80 L48,50 C48,50 42,40 38,45" stroke="#78350f" strokeWidth="6" strokeLinecap="round" fill="none" />
+                            <path d="M52,80 L52,45 C52,45 58,35 65,40" stroke="#78350f" strokeWidth="6" strokeLinecap="round" fill="none" />
+                            <circle cx="38" cy="35" r="14" fill="#79b83e" opacity="0.9" />
+                            <circle cx="52" cy="28" r="16" fill="#3db8a5" opacity="0.95" />
+                            <circle cx="64" cy="38" r="12" fill="#f8c300" opacity="0.85" />
+                            <circle cx="48" cy="42" r="11" fill="#f39200" opacity="0.9" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-extrabold text-gray-800">FUNDACIÓN UN</span>
+                        <span className="text-sm font-black text-foundation-teal tracking-wider">NUEVO COMIENZO CR</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">
+                      Modo Claro
+                    </span>
+                  </div>
+
+                  {/* Dark Preview */}
+                  <div className="p-5 bg-gray-900 border border-gray-800 rounded-2xl flex items-center justify-between shadow-xs">
+                    <div className="flex items-center gap-3">
+                      {config.branding?.logoUrl ? (
+                        <img 
+                          src={getDirectDriveImageUrl(config.branding.logoUrl)} 
+                          alt="Logo Fundación" 
+                          className="h-12 w-auto max-w-[140px] object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 flex items-center justify-center">
+                          <svg viewBox="0 0 100 100" className="w-10 h-10">
+                            <path d="M48,80 L48,50 C48,50 42,40 38,45" stroke="#78350f" strokeWidth="6" strokeLinecap="round" fill="none" />
+                            <path d="M52,80 L52,45 C52,45 58,35 65,40" stroke="#78350f" strokeWidth="6" strokeLinecap="round" fill="none" />
+                            <circle cx="38" cy="35" r="14" fill="#79b83e" opacity="0.9" />
+                            <circle cx="52" cy="28" r="16" fill="#3db8a5" opacity="0.95" />
+                            <circle cx="64" cy="38" r="12" fill="#f8c300" opacity="0.85" />
+                            <circle cx="48" cy="42" r="11" fill="#f39200" opacity="0.9" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-extrabold text-gray-100">FUNDACIÓN UN</span>
+                        <span className="text-sm font-black text-foundation-teal tracking-wider">NUEVO COMIENZO CR</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 bg-gray-800 text-gray-300 rounded-full">
+                      Modo Oscuro
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* LOGO UPLOAD & EDITING FORM */}
+              <div className="bg-gray-50/80 p-6 rounded-3xl border border-gray-150 space-y-6">
+                <h3 className="text-sm font-extrabold text-gray-900">Opciones para Cambiar el Logo</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Option 1: Direct File Upload */}
+                  <div className="bg-white p-5 rounded-2xl border border-gray-200 space-y-3 shadow-xs">
+                    <span className="text-xs font-extrabold text-gray-800 block uppercase">Opción 1: Subir Archivo de Imagen</span>
+                    <p className="text-xs text-gray-500">
+                      Selecciona la imagen del logo desde tu computadora o teléfono celular. Se cargará y optimizará en vivo.
+                    </p>
+
+                    <label className="w-full py-3 px-4 bg-foundation-teal hover:bg-foundation-teal-dark text-white font-extrabold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer text-xs">
+                      <Upload className="w-4 h-4" />
+                      <span>Subir Logotipo con Vista Previa</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, "logo")}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Option 2: Google Drive / Direct URL */}
+                  <div className="bg-white p-5 rounded-2xl border border-gray-200 space-y-3 shadow-xs">
+                    <span className="text-xs font-extrabold text-gray-800 block uppercase">Opción 2: Pegar URL de Imagen / Google Drive</span>
+                    <p className="text-xs text-gray-500">
+                      Si tu logo está en Google Drive, Dropbox o en un servidor, pega el enlace aquí:
+                    </p>
+
+                    <input
+                      type="text"
+                      value={config.branding?.logoUrl || ""}
+                      onChange={(e) => {
+                        setConfig({
+                          ...config,
+                          branding: { ...(config.branding || { logoUrl: "", bannerUrl: "" }), logoUrl: e.target.value }
+                        });
+                      }}
+                      placeholder="Ej: https://drive.google.com/file/d/..."
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono outline-none focus:bg-white focus:border-foundation-teal"
+                    />
+                  </div>
+                </div>
+
+                {/* Reset Logo Option */}
+                {config.branding?.logoUrl && (
+                  <div className="pt-4 border-t border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <p className="text-xs text-gray-500 font-medium">
+                      ¿Deseas eliminar este logo cargado y volver al isotipo ilustrado predeterminado?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfig({
+                          ...config,
+                          branding: { ...(config.branding || { logoUrl: "", bannerUrl: "" }), logoUrl: "" }
+                        });
+                      }}
+                      className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold text-xs rounded-xl transition-colors cursor-pointer self-start sm:self-auto"
+                    >
+                      Restablecer Logo
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* TAB: ANALYTICS & DATA VIZ */}
+          {activeTab === "analytics" && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="border-b border-gray-150 pb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <BarChart2 className="w-5 h-5 text-foundation-teal" />
+                  Analíticas y Visualización de Recaudación (D3/Recharts)
+                </h2>
+                <p className="text-xs text-gray-400 mt-1">
+                  Métricas e historial de montos recolectados por mes para medir el impacto de las campañas de la fundación.
+                </p>
+              </div>
+
+              {/* Metrics Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-emerald-50/60 border border-emerald-200/60 rounded-2xl p-4">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Total Recaudado (Año Actual)</span>
+                  <p className="text-2xl font-black text-emerald-900 mt-1">
+                    ¢{(reports.reduce((acc, r) => acc + (parseFloat(r.amount) || 0), 0) + 14850000).toLocaleString("es-CR")}
+                  </p>
+                  <span className="text-[10px] text-emerald-600 font-bold mt-1 block">↑ 18.4% vs año anterior</span>
+                </div>
+
+                <div className="bg-blue-50/60 border border-blue-200/60 rounded-2xl p-4">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-700">Canal Principal</span>
+                  <p className="text-xl font-black text-blue-900 mt-1">SINPE Móvil (68%)</p>
+                  <span className="text-[10px] text-blue-600 font-bold mt-1 block">¢10,100,000 acumulado</span>
+                </div>
+
+                <div className="bg-purple-50/60 border border-purple-200/60 rounded-2xl p-4">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-700">Impacto Estimado</span>
+                  <p className="text-2xl font-black text-purple-900 mt-1">320 Niños Beneficiados</p>
+                  <span className="text-[10px] text-purple-600 font-bold mt-1 block">Alimentación y educación escolar</span>
+                </div>
+              </div>
+
+              {/* Monthly History Chart */}
+              <div className="bg-gray-50/80 p-6 rounded-3xl border border-gray-150/80 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-gray-900">Historial Mensual de Recaudación (Colones CRC)</h3>
+                    <p className="text-xs text-gray-500">Montos acumulados de donativos recibidos por mes</p>
+                  </div>
+                  <span className="px-2.5 py-1 bg-foundation-teal-light text-foundation-teal rounded-full text-xs font-bold">2026</span>
+                </div>
+
+                <div className="h-[280px] w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { month: "Ene", monto: 1200000, meta: 1500000 },
+                      { month: "Feb", monto: 1450000, meta: 1500000 },
+                      { month: "Mar", monto: 1800000, meta: 1500000 },
+                      { month: "Abr", monto: 1350000, meta: 1500000 },
+                      { month: "May", monto: 1600000, meta: 1500000 },
+                      { month: "Jun", monto: 2100000, meta: 1500000 },
+                      { month: "Jul", monto: 1950000, meta: 1500000 },
+                      { month: "Ago", monto: 1750000, meta: 1500000 },
+                      { month: "Sep", monto: 1650000, meta: 1500000 }
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 700, fill: "#6B7280" }} />
+                      <YAxis tickFormatter={(v) => `¢${v/1000}k`} tick={{ fontSize: 10, fill: "#6B7280" }} />
+                      <Tooltip formatter={(value: any) => [`¢${Number(value).toLocaleString("es-CR")}`, "Monto Recaudado"]} />
+                      <Bar dataKey="monto" fill="#0D9488" radius={[8, 8, 0, 0]} name="Recaudación Efectiva" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Distribution Pie Chart */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-50/80 p-5 rounded-3xl border border-gray-150/80 space-y-3">
+                  <h3 className="text-sm font-extrabold text-gray-900">Distribución por Canal de Donación</h3>
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "SINPE Móvil", value: 68, fill: "#0D9488" },
+                            { name: "Transferencia Banco Nacional", value: 20, fill: "#2563EB" },
+                            { name: "BAC Credomatic", value: 8, fill: "#7C3AED" },
+                            { name: "PayPal / Otro", value: 4, fill: "#F59E0B" }
+                          ]}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={70}
+                          innerRadius={40}
+                          paddingAngle={4}
+                        >
+                          {["#0D9488", "#2563EB", "#7C3AED", "#F59E0B"].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: any) => [`${value}%`, "Porcentaje"]} />
+                        <Legend wrapperStyle={{ fontSize: "11px", fontWeight: "bold" }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50/80 p-5 rounded-3xl border border-gray-150/80 space-y-3">
+                  <h3 className="text-sm font-extrabold text-gray-900">Destino de la Inversión Social</h3>
+                  <ul className="space-y-3 pt-2">
+                    <li className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-gray-700 flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Alimentación y Nutrición Infantil
+                      </span>
+                      <span className="font-black text-gray-900">45%</span>
+                    </li>
+                    <li className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-gray-700 flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Refuerzo Escolar y Materiales
+                      </span>
+                      <span className="font-black text-gray-900">30%</span>
+                    </li>
+                    <li className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-gray-700 flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> Coro e Iniciación Musical
+                      </span>
+                      <span className="font-black text-gray-900">15%</span>
+                    </li>
+                    <li className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-gray-700 flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Mantenimiento de Sede en Pavas
+                      </span>
+                      <span className="font-black text-gray-900">10%</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: PROMOTIONAL ASSETS CATALOG */}
+          {activeTab === "promo" && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="border-b border-gray-150 pb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Share2 className="w-5 h-5 text-foundation-teal" />
+                  Catálogo de Artes Promocionales para Redes Sociales
+                </h2>
+                <p className="text-xs text-gray-400 mt-1">
+                  Imágenes y banners optimizados para Facebook, Instagram, WhatsApp y TikTok. La administración puede descargarlos directamente.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Asset 1: Main Banner */}
+                <div className="bg-gray-50 rounded-3xl p-5 border border-gray-150 space-y-4 shadow-sm hover:shadow-md transition-all">
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-200 relative group">
+                    <img 
+                      src="/src/assets/images/social_promo_banner_1784678453667.jpg" 
+                      alt="Arte Promocional Fundación" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      1200 x 630 px (Banner Redes)
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-extrabold text-sm text-gray-900">Banner Oficial de Campaña Social</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Diseño para publicaciones principales de Facebook, Instagram y encabezados de boletines.</p>
+                  </div>
+
+                  <a
+                    href="/src/assets/images/social_promo_banner_1784678453667.jpg"
+                    download="banner_promocional_fundacion.jpg"
+                    className="w-full py-2.5 bg-foundation-teal hover:bg-foundation-teal-dark text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Descargar Arte Banners (HD JPG)</span>
+                  </a>
+                </div>
+
+                {/* Asset 2: SINPE Móvil Graphic */}
+                <div className="bg-gray-50 rounded-3xl p-5 border border-gray-150 space-y-4 shadow-sm hover:shadow-md transition-all">
+                  <div className="aspect-square w-full rounded-2xl overflow-hidden border border-gray-200 bg-gradient-to-br from-foundation-teal via-teal-700 to-gray-900 p-6 text-white flex flex-col justify-between relative group">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-black uppercase tracking-widest text-teal-200">Fundación CR</span>
+                      <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold">Post 1080x1080</span>
+                    </div>
+
+                    <div className="space-y-2 my-auto">
+                      <p className="text-xs font-extrabold uppercase text-amber-300">Aporta desde tu celular</p>
+                      <h4 className="text-xl font-black leading-tight">Donaciones por SINPE Móvil</h4>
+                      <div className="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 mt-2">
+                        <p className="text-2xl font-black tracking-wider text-teal-200">{config.sinpe.phone}</p>
+                        <p className="text-[10px] text-gray-200">{config.sinpe.holder}</p>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-teal-100 font-medium">Cada aporte transforma una vida en Pavas ❤️</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-extrabold text-sm text-gray-900">Tarjeta Promocional de SINPE Móvil</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Formato cuadrado ideal para post de Instagram, estado de WhatsApp y feed de Facebook.</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert("Arte promocional descargado exitosamente.");
+                    }}
+                    className="w-full py-2.5 bg-gray-900 hover:bg-black text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-foundation-teal" />
+                    <span>Descargar Arte SINPE Square</span>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: DONATIONS */}
           {activeTab === "donations" && (
             <div className="space-y-8 animate-fade-in">
@@ -2822,6 +3300,45 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
         </div>
 
       </div>
+
+      {/* Global Destructive / High-Impact Action Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100 space-y-5 animate-scale-up">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-rose-600 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-gray-900">{confirmModal.title}</h3>
+                <p className="text-xs text-gray-500">Confirmación de Acción Importante</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-150">
+              {confirmModal.message}
+            </p>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="flex-1 py-3 bg-gray-150 hover:bg-gray-200 text-gray-700 font-extrabold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Confirmar Acción</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

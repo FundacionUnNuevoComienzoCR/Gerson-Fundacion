@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Menu, X, Heart, Settings, LogOut, ChevronRight, Sun, Moon } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Menu, X, Heart, Settings, LogOut, ChevronRight, Sun, Moon, Search, FileText, HelpCircle, ArrowRight } from "lucide-react";
 import { getDirectDriveImageUrl } from "../utils/drive";
+import { AppConfig } from "../types";
 
 interface HeaderProps {
   currentView: string;
@@ -10,10 +11,42 @@ interface HeaderProps {
   logoUrl?: string;
   theme: "light" | "dark";
   onToggleTheme: () => void;
+  config?: AppConfig;
 }
 
-export default function Header({ currentView, onViewChange, isLoggedIn, onLogout, logoUrl, theme, onToggleTheme }: HeaderProps) {
+export default function Header({ currentView, onViewChange, isLoggedIn, onLogout, logoUrl, theme, onToggleTheme, config }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (searchOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [searchOpen]);
+
+  // Search logic
+  const programs = config?.programs || [];
+  const faqs = config?.faqs || [];
+
+  const filteredPrograms = searchQuery.trim()
+    ? programs.filter(
+        p =>
+          p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  const filteredFaqs = searchQuery.trim()
+    ? faqs.filter(
+        f =>
+          f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          f.answer.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  const hasResults = filteredPrograms.length > 0 || filteredFaqs.length > 0;
 
   const menuItems = [
     { id: "inicio", label: "Inicio" },
@@ -51,8 +84,8 @@ export default function Header({ currentView, onViewChange, isLoggedIn, onLogout
                 />
               </div>
             ) : (
-              <div className="w-12 h-12 flex-shrink-0 relative bg-foundation-teal-light dark:bg-foundation-teal/10 rounded-xl flex items-center justify-center border border-foundation-teal/20 group-hover:scale-105 transition-transform duration-300">
-                <svg viewBox="0 0 100 100" className="w-9 h-9">
+              <div className="w-12 h-12 flex-shrink-0 relative flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                <svg viewBox="0 0 100 100" className="w-11 h-11 drop-shadow-xs">
                   {/* Trunk */}
                   <path d="M48,80 L48,50 C48,50 42,40 38,45" stroke="#78350f" strokeWidth="6" strokeLinecap="round" fill="none" />
                   <path d="M52,80 L52,45 C52,45 58,35 65,40" stroke="#78350f" strokeWidth="6" strokeLinecap="round" fill="none" />
@@ -111,6 +144,16 @@ export default function Header({ currentView, onViewChange, isLoggedIn, onLogout
 
             <div className="h-5 w-[1px] bg-gray-200 dark:bg-gray-800 mx-2" />
 
+            {/* Search Trigger button */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(!searchOpen)}
+              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-foundation-teal dark:hover:text-foundation-teal transition-all cursor-pointer mr-1 relative"
+              title="Buscar Programas y Preguntas Frecuentes"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+
             {/* Dark Mode Toggle button */}
             <button
               type="button"
@@ -125,14 +168,15 @@ export default function Header({ currentView, onViewChange, isLoggedIn, onLogout
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleNav("admin-panel")}
-                  className={`px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
                     currentView === "admin-panel"
-                      ? "bg-foundation-teal-light dark:bg-foundation-teal/15 text-foundation-teal"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-foundation-teal"
+                      ? "bg-foundation-teal text-white shadow-md shadow-foundation-teal/20"
+                      : "bg-foundation-teal-light dark:bg-foundation-teal/15 text-foundation-teal hover:bg-foundation-teal hover:text-white"
                   }`}
+                  title="Panel de Administración: Cambiar Logos, Redes y Contenidos"
                 >
                   <Settings className="w-4 h-4 animate-spin-slow" />
-                  CMS
+                  <span>CMS (Logos y Contenido)</span>
                 </button>
                 <button
                   onClick={onLogout}
@@ -160,6 +204,14 @@ export default function Header({ currentView, onViewChange, isLoggedIn, onLogout
           <div className="md:hidden flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setSearchOpen(!searchOpen)}
+              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer"
+              title="Buscar en el sitio"
+            >
+              <Search className="w-5.5 h-5.5" />
+            </button>
+            <button
+              type="button"
               onClick={onToggleTheme}
               className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer"
               title={theme === "light" ? "Modo Oscuro" : "Modo Claro"}
@@ -184,6 +236,124 @@ export default function Header({ currentView, onViewChange, isLoggedIn, onLogout
 
         </div>
       </div>
+
+      {/* Search Bar Popup Overlay */}
+      {searchOpen && (
+        <div className="absolute top-20 left-0 w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-2xl p-4 sm:p-6 z-50 animate-fade-in">
+          <div className="max-w-3xl mx-auto space-y-4">
+            <div className="relative flex items-center">
+              <Search className="w-5 h-5 absolute left-4 text-foundation-teal" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar programas, proyectos o preguntas frecuentes (FAQ)..."
+                className="w-full pl-12 pr-10 py-3 bg-gray-50 dark:bg-gray-800 border-2 border-foundation-teal/30 focus:border-foundation-teal rounded-2xl text-sm font-bold text-gray-900 dark:text-gray-100 outline-none transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Results dropdown */}
+            {searchQuery.trim() !== "" && (
+              <div className="max-h-80 overflow-y-auto space-y-3 pt-2">
+                {!hasResults ? (
+                  <p className="text-xs font-semibold text-gray-400 text-center py-6">
+                    No se encontraron resultados para "{searchQuery}".
+                  </p>
+                ) : (
+                  <>
+                    {/* Programs matching */}
+                    {filteredPrograms.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-[11px] font-black uppercase tracking-wider text-foundation-teal flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5" />
+                          Programas y Proyectos ({filteredPrograms.length})
+                        </p>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {filteredPrograms.map((prog) => (
+                            <div
+                              key={prog.id}
+                              onClick={() => {
+                                handleNav("sobre-nosotros");
+                                setSearchOpen(false);
+                                setSearchQuery("");
+                              }}
+                              className="p-3 bg-gray-50 dark:bg-gray-800/60 hover:bg-foundation-teal/10 rounded-xl cursor-pointer transition-colors flex items-center justify-between group"
+                            >
+                              <div>
+                                <h4 className="text-xs font-extrabold text-gray-900 dark:text-gray-100 group-hover:text-foundation-teal transition-colors">
+                                  {prog.title}
+                                </h4>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-1">
+                                  {prog.description}
+                                </p>
+                              </div>
+                              <ArrowRight className="w-4 h-4 text-foundation-teal opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* FAQs matching */}
+                    {filteredFaqs.length > 0 && (
+                      <div className="space-y-1.5 pt-2">
+                        <p className="text-[11px] font-black uppercase tracking-wider text-foundation-teal flex items-center gap-1.5">
+                          <HelpCircle className="w-3.5 h-3.5" />
+                          Preguntas Frecuentes ({filteredFaqs.length})
+                        </p>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {filteredFaqs.map((faq) => (
+                            <div
+                              key={faq.id}
+                              onClick={() => {
+                                handleNav("contactenos");
+                                setSearchOpen(false);
+                                setSearchQuery("");
+                              }}
+                              className="p-3 bg-gray-50 dark:bg-gray-800/60 hover:bg-foundation-teal/10 rounded-xl cursor-pointer transition-colors flex items-center justify-between group"
+                            >
+                              <div>
+                                <h4 className="text-xs font-extrabold text-gray-900 dark:text-gray-100 group-hover:text-foundation-teal transition-colors">
+                                  {faq.question}
+                                </h4>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-1">
+                                  {faq.answer}
+                                </p>
+                              </div>
+                              <ArrowRight className="w-4 h-4 text-foundation-teal opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center text-[10px] text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-800">
+              <span>Busque por palabras clave de nuestros programas sociales o FAQs</span>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="font-bold text-foundation-teal hover:underline cursor-pointer"
+              >
+                Cerrar búsqueda
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
@@ -219,8 +389,8 @@ export default function Header({ currentView, onViewChange, isLoggedIn, onLogout
                     currentView === "admin-panel" ? "bg-foundation-teal-light dark:bg-foundation-teal/15 text-foundation-teal" : "text-gray-700 dark:text-gray-300"
                   }`}
                 >
-                  <Settings className="w-5 h-5 animate-spin-slow" />
-                  Panel de Administración
+                  <Settings className="w-5 h-5 animate-spin-slow text-foundation-teal" />
+                  <span>CMS (Cambiar Logos y Contenidos)</span>
                 </button>
                 <button
                   onClick={() => {

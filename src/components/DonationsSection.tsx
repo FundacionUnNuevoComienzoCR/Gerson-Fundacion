@@ -1,5 +1,5 @@
-import React, { useState, FormEvent } from "react";
-import { Copy, Check, Heart, ShieldCheck, Landmark, DollarSign, Wallet, ArrowRight, ExternalLink, X, Upload, Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import React, { useState, FormEvent, useRef } from "react";
+import { Copy, Check, Heart, ShieldCheck, Landmark, DollarSign, Wallet, ArrowRight, ExternalLink, X, Upload, Send, Loader2, CheckCircle2, AlertCircle, Printer, FileText } from "lucide-react";
 import { AppConfig } from "../types";
 import FAQSection from "./FAQSection";
 
@@ -638,30 +638,79 @@ export default function DonationsSection({ config }: DonationsSectionProps) {
                   </form>
                 </div>
               ) : (
-                <div className="text-center py-6 space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/30 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+                <div className="text-center py-4 space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/30 text-emerald-500 flex items-center justify-center mx-auto mb-2">
                     <CheckCircle2 className="w-10 h-10 animate-bounce" />
                   </div>
                   <h3 className="text-2xl font-black text-gray-900 dark:text-white">¡Muchísimas Gracias!</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-sm mx-auto">
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed max-w-sm mx-auto">
                     Tu reporte de donación ha sido registrado con éxito en nuestro sistema administrativo.
                   </p>
                   
-                  <div className="bg-gray-50 dark:bg-gray-950 border border-gray-150 dark:border-gray-800 rounded-2xl p-4 text-left space-y-2.5 max-w-sm mx-auto text-xs">
-                    <p className="font-extrabold text-gray-700 dark:text-gray-250">¿Cuáles son los siguientes pasos?</p>
-                    <ul className="list-decimal list-inside space-y-1.5 text-gray-500 dark:text-gray-400 font-medium">
-                      <li>Nuestro departamento administrativo verificará la transacción.</li>
-                      <li>Recibirás un correo electrónico confirmando el ingreso del aporte.</li>
-                      <li>Si requieres recibo de exención fiscal por tu donación, te lo enviaremos a tu correo.</li>
-                    </ul>
+                  {/* Printable Voucher Receipt Box */}
+                  <div id="printable-donation-receipt" className="bg-white text-gray-900 border-2 border-foundation-teal/30 rounded-2xl p-5 text-left space-y-3 shadow-md print:shadow-none print:border-gray-300">
+                    <div className="flex justify-between items-center border-b border-gray-150 pb-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase text-foundation-teal tracking-widest">COMPROBANTE DE REPORTE</p>
+                        <h4 className="text-sm font-black text-gray-900">Fundación Un Nuevo Comienzo CR</h4>
+                      </div>
+                      <span className="text-[10px] font-bold bg-foundation-teal-light text-foundation-teal px-2 py-0.5 rounded-full">
+                        {new Date().toLocaleDateString("es-CR")}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <span className="text-gray-400 font-bold block">Donante:</span>
+                        <span className="font-extrabold text-gray-800">{donorName || "Anónimo"}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 font-bold block">Correo:</span>
+                        <span className="font-bold text-gray-700 truncate block">{donorEmail}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 font-bold block">Canal de Pago:</span>
+                        <span className="font-extrabold uppercase text-foundation-teal">
+                          {paymentChannel === "sinpe" ? "SINPE Móvil" : paymentChannel === "banco_bn" ? "Banco Nacional" : paymentChannel === "banco_bac" ? "BAC Credomatic" : "Otro"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 font-bold block">Monto Reportado:</span>
+                        <span className="font-black text-base text-foundation-teal-dark">
+                          ¢{parseFloat(confirmAmountField || "0").toLocaleString("es-CR")}
+                        </span>
+                      </div>
+                      {referenceNumber && (
+                        <div className="col-span-2 bg-gray-50 p-2 rounded-xl border border-gray-100">
+                          <span className="text-gray-400 font-bold block text-[10px]">Número de Referencia/Comprobante:</span>
+                          <span className="font-mono font-bold text-gray-800">{referenceNumber}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-[9px] text-gray-400 border-t border-gray-100 pt-2 flex items-center justify-between">
+                      <span>Cédula Jurídica: 3-002-861611</span>
+                      <span>Pavas, San José, C.R.</span>
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => setIsConfirmModalOpen(false)}
-                    className="mt-6 w-full py-3 bg-foundation-teal hover:bg-foundation-teal-dark text-white font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer text-xs"
-                  >
-                    Entendido, Cerrar
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="flex-1 py-3 bg-gray-900 hover:bg-black text-white font-extrabold rounded-xl shadow-md transition-all cursor-pointer text-xs flex items-center justify-center gap-2"
+                    >
+                      <Printer className="w-4 h-4 text-foundation-teal" />
+                      <span>Imprimir / Guardar PDF</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmModalOpen(false)}
+                      className="flex-1 py-3 bg-foundation-teal hover:bg-foundation-teal-dark text-white font-extrabold rounded-xl shadow-md transition-all cursor-pointer text-xs"
+                    >
+                      Entendido, Cerrar
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

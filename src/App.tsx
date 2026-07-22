@@ -129,10 +129,14 @@ export default function App() {
   // Contact form states
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [contactMessage, setContactMessage] = useState("");
   const [contactLoading, setContactLoading] = useState(false);
   const [contactSuccess, setContactSuccess] = useState(false);
   const [contactError, setContactError] = useState("");
+
+  // Map zoom state for mobile touch/hover
+  const [mapZoomed, setMapZoomed] = useState(false);
 
   // Check login state from localStorage on mount
   useEffect(() => {
@@ -204,13 +208,14 @@ export default function App() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: contactName, email: contactEmail, message: contactMessage })
+        body: JSON.stringify({ name: contactName, email: contactEmail, phone: contactPhone, message: contactMessage })
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setContactSuccess(true);
         setContactName("");
         setContactEmail("");
+        setContactPhone("");
         setContactMessage("");
       } else {
         setContactError(data.error || "Ocurrió un error al enviar el mensaje.");
@@ -264,6 +269,7 @@ export default function App() {
         logoUrl={config?.branding?.logoUrl}
         theme={theme}
         onToggleTheme={toggleTheme}
+        config={config}
       />
 
       {/* Main Content Sections */}
@@ -1086,35 +1092,96 @@ export default function App() {
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nombre:</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre Completo *:</label>
                     <input
                       type="text"
                       required
                       value={contactName}
                       onChange={(e) => setContactName(e.target.value)}
+                      placeholder="Tu nombre completo"
                       className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:border-foundation-teal focus:ring-2 focus:ring-foundation-teal/10"
                     />
                   </div>
 
+                  {/* Real-time Email Validation */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Correo Electrónico:</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-bold text-gray-500 uppercase">Correo Electrónico *:</label>
+                      {contactEmail.length > 0 && (
+                        <span className={`text-[11px] font-bold flex items-center gap-1 ${
+                          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) ? "text-emerald-600" : "text-rose-500"
+                        }`}>
+                          {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Correo válido
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="w-3.5 h-3.5" /> Formato de correo inválido
+                            </>
+                          )}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="email"
                       required
                       value={contactEmail}
                       onChange={(e) => setContactEmail(e.target.value)}
-                      placeholder="usuario@gmail.com"
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:border-foundation-teal focus:ring-2 focus:ring-foundation-teal/10"
+                      placeholder="ejemplo@correo.com"
+                      className={`w-full px-4 py-3 bg-white border rounded-xl text-sm font-semibold outline-none transition-colors ${
+                        contactEmail.length === 0
+                          ? "border-gray-200 focus:border-foundation-teal"
+                          : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)
+                          ? "border-emerald-400 focus:border-emerald-500 bg-emerald-50/20"
+                          : "border-rose-300 focus:border-rose-500 bg-rose-50/20"
+                      }`}
+                    />
+                  </div>
+
+                  {/* Real-time Phone Validation */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-bold text-gray-500 uppercase">Teléfono de Contacto:</label>
+                      {contactPhone.length > 0 && (
+                        <span className={`text-[11px] font-bold flex items-center gap-1 ${
+                          /^[+0-9\s-]{8,15}$/.test(contactPhone) ? "text-emerald-600" : "text-rose-500"
+                        }`}>
+                          {/^[+0-9\s-]{8,15}$/.test(contactPhone) ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Teléfono válido
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="w-3.5 h-3.5" /> Ingrese al menos 8 dígitos
+                            </>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="tel"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      placeholder="+506 8888-8888"
+                      className={`w-full px-4 py-3 bg-white border rounded-xl text-sm font-semibold outline-none transition-colors ${
+                        contactPhone.length === 0
+                          ? "border-gray-200 focus:border-foundation-teal"
+                          : /^[+0-9\s-]{8,15}$/.test(contactPhone)
+                          ? "border-emerald-400 focus:border-emerald-500 bg-emerald-50/20"
+                          : "border-rose-300 focus:border-rose-500 bg-rose-50/20"
+                      }`}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mensaje:</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mensaje o Consulta *:</label>
                     <textarea
                       required
-                      rows={5}
+                      rows={4}
                       value={contactMessage}
                       onChange={(e) => setContactMessage(e.target.value)}
+                      placeholder="Escriba su consulta o propuesta aquí..."
                       className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:border-foundation-teal focus:ring-2 focus:ring-foundation-teal/10"
                     />
                   </div>
@@ -1253,16 +1320,34 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Map frame */}
-                  <div className="rounded-3xl overflow-hidden border border-gray-150 h-[300px] relative shadow-sm">
+                  {/* Map frame with Zoom-on-Hover effect */}
+                  <div className="group rounded-3xl overflow-hidden border border-gray-150 h-[320px] relative shadow-sm transition-all duration-500 hover:shadow-xl hover:border-foundation-teal/40">
                     <iframe 
                       title="Fundación Map Location Dedicated"
                       src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3930.1557999813575!2d-84.14861!3d9.94722!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOcKwNTYnNTAuMCJOIDg0wrAwOCU1NS4wIlc!5e0!3m2!1ses!2scr!4v1710000000000!5m2!1ses!2scr"
-                      className="absolute inset-0 w-full h-full border-0"
+                      className={`absolute inset-0 w-full h-full border-0 transition-transform duration-500 ease-out origin-center group-hover:scale-110 ${
+                        mapZoomed ? "scale-125 z-10" : "scale-100"
+                      }`}
                       allowFullScreen
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
                     />
+
+                    {/* Mobile touch zoom overlay badge */}
+                    <div className="absolute bottom-3 right-3 z-20 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setMapZoomed(!mapZoomed)}
+                        className="px-3 py-1.5 bg-gray-900/80 hover:bg-black text-white text-xs font-bold rounded-xl backdrop-blur-sm shadow-md transition-all flex items-center gap-1.5 cursor-pointer sm:hidden"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-foundation-teal" />
+                        <span>{mapZoomed ? "Alejar Mapa" : "Ampliar Mapa (Zoom)"}</span>
+                      </button>
+                    </div>
+
+                    <div className="absolute top-3 left-3 pointer-events-none bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-extrabold text-gray-700 dark:text-gray-200 border border-gray-200/50 shadow-xs hidden sm:block">
+                      🔍 Pasa el cursor para ampliar mapa
+                    </div>
                   </div>
 
                 </div>
@@ -1343,12 +1428,7 @@ export default function App() {
                   )}
                 </button>
 
-                <div className="bg-gray-50 border border-gray-150 p-4 rounded-xl text-center text-xs text-gray-500 font-medium">
-                  <p className="font-extrabold text-gray-600 mb-1">💡 Credenciales por Defecto:</p>
-                  <p>Usuario: <code className="font-mono bg-white px-1 py-0.5 border rounded">admin</code></p>
-                  <p className="mt-0.5">Contraseña: <code className="font-mono bg-white px-1 py-0.5 border rounded">admin123</code></p>
-                  <p className="mt-2 text-[10px] text-gray-400">Puedes editarlas y personalizar tu seguridad guardándola en la configuración.</p>
-                </div>
+
 
               </form>
 
