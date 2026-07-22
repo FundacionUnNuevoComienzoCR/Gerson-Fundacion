@@ -923,33 +923,54 @@ export default function App() {
                 </div>
               </div>
 
-              {/* NUESTROS FUNDADORES SECTION (PORTRAITS MATCHING REFERENCE SCREENSHOT) */}
+              {/* NUESTROS FUNDADORES SECTION (DESKTOP & MOBILE RESPONSIVE) */}
               <div className="border-t border-gray-100 pt-16">
-                <div className="text-center max-w-3xl mx-auto mb-16">
-                  <h2 className="text-3xl font-black text-gray-900">Nuestros Fundadores</h2>
-                  <p className="text-gray-400 text-xs uppercase tracking-widest mt-2 font-bold">Líderes de la institución</p>
+                <div className="text-center max-w-3xl mx-auto mb-16 space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-foundation-teal/10 text-foundation-teal font-extrabold text-xs uppercase tracking-wider border border-foundation-teal/15">
+                    Liderazgo Humanitario
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-black text-gray-900">Nuestros Fundadores</h2>
+                  <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mt-1">Líderes de la institución</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                  {founders.map((founder) => (
-                    <div key={founder.id} className="flex flex-col items-center text-center space-y-4 group">
-                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 shadow-md group-hover:scale-105 transition-transform">
-                        <BlurUpImage 
-                          src={founder.imageUrl} 
-                          alt={founder.name} 
-                          className="w-full h-full object-cover"
-                        />
+                {(!founders || founders.filter(f => f.active !== false).length === 0) ? (
+                  <div className="text-center py-10 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p className="text-xs font-bold text-gray-400">No hay fundadores activos registrados en este momento.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 items-stretch justify-center">
+                    {founders.filter(f => f.active !== false).map((founder, idx) => (
+                      <div 
+                        key={founder.id || idx} 
+                        className="bg-gray-50/80 hover:bg-white rounded-3xl p-8 border border-gray-150 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center space-y-5 group hover:scale-[1.02]"
+                      >
+                        {/* Foto Circular en la parte superior */}
+                        <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-white shadow-lg group-hover:border-foundation-teal/30 group-hover:scale-105 transition-all shrink-0 relative bg-gray-200">
+                          <BlurUpImage 
+                            src={getDirectDriveImageUrl(founder.imageUrl)} 
+                            alt={founder.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {/* Nombre y cargo debajo */}
+                        <div className="space-y-1">
+                          <h4 className="text-xl font-black text-gray-900 group-hover:text-foundation-teal transition-colors">
+                            {founder.name}
+                          </h4>
+                          <span className="inline-block text-xs font-black uppercase text-foundation-teal tracking-wider bg-foundation-teal/10 px-3 py-1 rounded-full">
+                            {founder.role}
+                          </span>
+                        </div>
+
+                        {/* Texto descriptivo en un bloque claro y legible */}
+                        <div className="bg-white p-5 rounded-2xl border border-gray-150 text-gray-600 text-xs leading-relaxed font-medium text-left w-full shadow-2xs flex-grow">
+                          {founder.description}
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-lg font-extrabold text-gray-900">{founder.name}</h4>
-                        <p className="text-xs font-black uppercase text-gray-400 mt-1 tracking-wider">{founder.role}</p>
-                      </div>
-                      <p className="text-gray-500 text-xs leading-relaxed max-w-xs font-medium">
-                        {founder.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
             </div>

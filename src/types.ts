@@ -65,6 +65,7 @@ export interface Founder {
   role: string;
   description: string;
   imageUrl: string;
+  active?: boolean;
 }
 
 export interface Sponsor {
