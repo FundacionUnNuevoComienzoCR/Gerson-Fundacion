@@ -34,7 +34,10 @@ import {
   MapPin,
   Clock,
   BarChart2,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  QrCode,
+  MessageCircle,
+  Facebook
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -51,7 +54,7 @@ import {
   AreaChart, 
   Area 
 } from "recharts";
-import { AppConfig, ContactMessage, BankAccount, Program, Founder, Testimonial, Sponsor, DonationGoal, BrandingConfig, WhatsAppConfig, FAQItem, SEOConfig, GlobalNoticeConfig } from "../types";
+import { AppConfig, ContactMessage, BankAccount, Program, Founder, Testimonial, Sponsor, DonationGoal, BrandingConfig, WhatsAppConfig, FAQItem, SEOConfig, GlobalNoticeConfig, PromoArt } from "../types";
 import { getDirectDriveImageUrl } from "../utils/drive";
 import { compressImage } from "../utils/compressor";
 
@@ -183,7 +186,7 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
   };
 
   // Image upload with preview
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "logo" | "banner" | { type: "program"; index: number } | { type: "testimonial"; index: number } | { type: "sponsor"; index: number } | "hero") => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "logo" | "banner" | "corporateQr" | { type: "program"; index: number } | { type: "testimonial"; index: number } | { type: "sponsor"; index: number } | { type: "promoArt"; index: number } | "hero") => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -206,6 +209,7 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
         let filename = `upload_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9\.\-_]/g, "")}`;
         if (field === "logo") filename = `logo_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9\.\-_]/g, "")}`;
         else if (field === "banner") filename = `banner_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9\.\-_]/g, "")}`;
+        else if (field === "corporateQr") filename = `corporate_qr_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9\.\-_]/g, "")}`;
 
         let finalUrl = base64;
         try {
@@ -237,6 +241,11 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
             ...prev,
             branding: { ...prev.branding, bannerUrl: finalUrl }
           }));
+        } else if (field === "corporateQr") {
+          setConfig(prev => ({
+            ...prev,
+            branding: { ...prev.branding, corporateQrUrl: finalUrl }
+          }));
         } else if (field === "hero") {
           setConfig(prev => ({
             ...prev,
@@ -257,6 +266,10 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
             const updatedSponsors = [...(config.sponsors || [])];
             updatedSponsors[field.index] = { ...updatedSponsors[field.index], logoUrl: finalUrl };
             setConfig(prev => ({ ...prev, sponsors: updatedSponsors }));
+          } else if (field.type === "promoArt") {
+            const updatedArts = [...(config.promoArts || [])];
+            updatedArts[field.index] = { ...updatedArts[field.index], imageUrl: finalUrl };
+            setConfig(prev => ({ ...prev, promoArts: updatedArts }));
           }
         }
         alert("¡Imagen subida con éxito y vista previa generada!");
@@ -320,6 +333,43 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
     if (!config.testimonials) return;
     const filtered = config.testimonials.filter((_, idx) => idx !== index);
     setConfig({ ...config, testimonials: filtered });
+  };
+
+  // Promo Arts management
+  const handlePromoArtChange = (index: number, field: keyof PromoArt, value: string) => {
+    const updated = [...(config.promoArts || [])];
+    updated[index] = { ...updated[index], [field]: value } as PromoArt;
+    setConfig({ ...config, promoArts: updated });
+  };
+
+  const handleAddPromoArt = () => {
+    const newArt: PromoArt = {
+      id: "promo-" + Date.now(),
+      title: "Nuevo Arte Promocional",
+      description: "Descripción breve de la pieza gráfica...",
+      imageUrl: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&q=80&w=1080",
+      format: "1080x1080"
+    };
+    setConfig({
+      ...config,
+      promoArts: [...(config.promoArts || []), newArt]
+    });
+  };
+
+  const handleRemovePromoArt = (index: number) => {
+    const filtered = (config.promoArts || []).filter((_, idx) => idx !== index);
+    setConfig({ ...config, promoArts: filtered });
+  };
+
+  // Branding config management
+  const handleBrandingChange = (field: keyof BrandingConfig, value: string) => {
+    setConfig({
+      ...config,
+      branding: {
+        ...(config.branding || { logoUrl: "", bannerUrl: "" }),
+        [field]: value
+      }
+    });
   };
 
   // Donation goals management
@@ -489,9 +539,16 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
   const handleSaveConfig = async (customConfig?: AppConfig) => {
     setLoading(true);
     setStatusMsg(null);
-    const configToSave = customConfig || config;
+    const baseConfig = customConfig || config;
+    const configToSave: AppConfig = {
+      ...baseConfig,
+      updatedAt: new Date().toISOString()
+    };
 
-    // Persist locally for static hostings (e.g. Netlify)
+    // Update local React state in CMS component
+    setConfig(configToSave);
+
+    // Persist locally in browser for offline & static hostings
     try {
       localStorage.setItem("foundation_cms_config", JSON.stringify(configToSave));
     } catch (e) {}
@@ -508,8 +565,10 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          setStatusMsg({ type: "success", text: "¡Configuración guardada correctamente en el servidor!" });
-          onConfigUpdate(configToSave);
+          setStatusMsg({ type: "success", text: "¡Configuración e información guardadas permanentemente en el servidor!" });
+          onConfigUpdate(data.config || configToSave);
+          setLoading(false);
+          setTimeout(() => setStatusMsg(null), 5000);
           return;
         }
       }
@@ -1125,84 +1184,140 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
           {/* TAB: PROMOTIONAL ASSETS CATALOG */}
           {activeTab === "promo" && (
             <div className="space-y-8 animate-fade-in">
-              <div className="border-b border-gray-150 pb-4">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Share2 className="w-5 h-5 text-foundation-teal" />
-                  Catálogo de Artes Promocionales para Redes Sociales
-                </h2>
-                <p className="text-xs text-gray-400 mt-1">
-                  Imágenes y banners optimizados para Facebook, Instagram, WhatsApp y TikTok. La administración puede descargarlos directamente.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Asset 1: Main Banner */}
-                <div className="bg-gray-50 rounded-3xl p-5 border border-gray-150 space-y-4 shadow-sm hover:shadow-md transition-all">
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-200 relative group">
-                    <img 
-                      src="/src/assets/images/social_promo_banner_1784678453667.jpg" 
-                      alt="Arte Promocional Fundación" 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                      1200 x 630 px (Banner Redes)
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-extrabold text-sm text-gray-900">Banner Oficial de Campaña Social</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">Diseño para publicaciones principales de Facebook, Instagram y encabezados de boletines.</p>
-                  </div>
-
-                  <a
-                    href="/src/assets/images/social_promo_banner_1784678453667.jpg"
-                    download="banner_promocional_fundacion.jpg"
-                    className="w-full py-2.5 bg-foundation-teal hover:bg-foundation-teal-dark text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Descargar Arte Banners (HD JPG)</span>
-                  </a>
+              <div className="border-b border-gray-150 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Share2 className="w-5 h-5 text-foundation-teal" />
+                    Catálogo de Artes Promocionales
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Aquí puedes subir banners oficiales y artes promocionales para que se muestren en la sección Catálogo.
+                  </p>
                 </div>
 
-                {/* Asset 2: SINPE Móvil Graphic */}
-                <div className="bg-gray-50 rounded-3xl p-5 border border-gray-150 space-y-4 shadow-sm hover:shadow-md transition-all">
-                  <div className="aspect-square w-full rounded-2xl overflow-hidden border border-gray-200 bg-gradient-to-br from-foundation-teal via-teal-700 to-gray-900 p-6 text-white flex flex-col justify-between relative group">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-black uppercase tracking-widest text-teal-200">Fundación CR</span>
-                      <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold">Post 1080x1080</span>
-                    </div>
+                <button
+                  onClick={handleAddPromoArt}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-foundation-teal hover:bg-foundation-teal-dark text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer self-start sm:self-auto hover:scale-105"
+                >
+                  <Plus className="w-4 h-4" />
+                  Añadir Arte Promocional
+                </button>
+              </div>
 
-                    <div className="space-y-2 my-auto">
-                      <p className="text-xs font-extrabold uppercase text-amber-300">Aporta desde tu celular</p>
-                      <h4 className="text-xl font-black leading-tight">Donaciones por SINPE Móvil</h4>
-                      <div className="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 mt-2">
-                        <p className="text-2xl font-black tracking-wider text-teal-200">{config.sinpe.phone}</p>
-                        <p className="text-[10px] text-gray-200">{config.sinpe.holder}</p>
+              {/* EXPLANATION BADGE MANDATED BY USER */}
+              <div className="bg-teal-50/70 border border-teal-200/80 p-5 rounded-2xl flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-foundation-teal flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="text-xs font-black uppercase text-teal-900 tracking-wider">
+                    📌 Módulo de Gestión de Artes Promocionales
+                  </h4>
+                  <p className="text-xs text-teal-800 font-semibold leading-relaxed">
+                    Aquí puedes subir banners oficiales y artes promocionales para que se muestren en la sección Catálogo. Los visitantes podrán visualizarlos y descargarlos en Alta Definición directamente desde la página pública.
+                  </p>
+                </div>
+              </div>
+
+              {/* LIST OF PROMO ARTS */}
+              {(!config.promoArts || config.promoArts.length === 0) ? (
+                <div className="text-center py-16 text-gray-400 border border-dashed border-gray-200 rounded-3xl space-y-3">
+                  <Share2 className="w-12 h-12 mx-auto stroke-1 text-gray-300" />
+                  <p className="text-sm font-bold">No hay artes promocionales cargados.</p>
+                  <p className="text-xs">Haz clic en "Añadir Arte Promocional" para crear la primera gráfica.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {config.promoArts.map((art, index) => (
+                    <div key={art.id || index} className="p-6 bg-gray-50 rounded-3xl border border-gray-150 space-y-6 relative group">
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePromoArt(index)}
+                        className="absolute top-4 right-4 p-2 bg-red-50 hover:bg-red-100 text-foundation-red rounded-xl transition-all cursor-pointer"
+                        title="Eliminar Arte"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                        {/* Image preview & upload */}
+                        <div className="md:col-span-4 space-y-3">
+                          <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400">Previsualización del Arte ({art.format || "1080x1080"})</label>
+                          <div className={`w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-200 relative ${
+                            art.format === "1080x1080" ? "aspect-square" : "aspect-[1200/630]"
+                          }`}>
+                            <img
+                              src={art.imageUrl}
+                              alt={art.title}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+
+                          <label className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-foundation-teal text-gray-700 hover:text-foundation-teal rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all w-full">
+                            <Upload className="w-3.5 h-3.5 text-foundation-teal" />
+                            <span>Subir Banner / Imagen</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileUpload(e, { type: "promoArt", index })}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+
+                        {/* Fields */}
+                        <div className="md:col-span-8 space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-2">
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1">Título del Arte Promocional</label>
+                              <input
+                                type="text"
+                                value={art.title}
+                                onChange={(e) => handlePromoArtChange(index, "title", e.target.value)}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none focus:border-foundation-teal"
+                                placeholder="Ej: Campaña SINPE Móvil o Banner Navideño"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1">Formato de Imagen</label>
+                              <select
+                                value={art.format || "1080x1080"}
+                                onChange={(e) => handlePromoArtChange(index, "format", e.target.value as any)}
+                                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none focus:border-foundation-teal"
+                              >
+                                <option value="1080x1080">Cuadrado (1080 x 1080 px)</option>
+                                <option value="1200x630">Rectangular (1200 x 630 px)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1">URL de la Imagen (o enlace directo)</label>
+                            <input
+                              type="text"
+                              value={art.imageUrl}
+                              onChange={(e) => handlePromoArtChange(index, "imageUrl", e.target.value)}
+                              className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-mono outline-none focus:border-foundation-teal"
+                              placeholder="https://..."
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1">Descripción Breve</label>
+                            <textarea
+                              rows={3}
+                              value={art.description}
+                              onChange={(e) => handlePromoArtChange(index, "description", e.target.value)}
+                              className="w-full p-3.5 bg-white border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-foundation-teal"
+                              placeholder="Explique el propósito de esta gráfica y sus indicaciones de uso..."
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    <p className="text-[10px] text-teal-100 font-medium">Cada aporte transforma una vida en Pavas ❤️</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-extrabold text-sm text-gray-900">Tarjeta Promocional de SINPE Móvil</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">Formato cuadrado ideal para post de Instagram, estado de WhatsApp y feed de Facebook.</p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      alert("Arte promocional descargado exitosamente.");
-                    }}
-                    className="w-full py-2.5 bg-gray-900 hover:bg-black text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Download className="w-4 h-4 text-foundation-teal" />
-                    <span>Descargar Arte SINPE Square</span>
-                  </button>
+                  ))}
                 </div>
-
-              </div>
+              )}
             </div>
           )}
 
@@ -2298,135 +2413,222 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                 </div>
               </div>
 
-              {/* REDES SOCIALES Y CANALES OFICIALES */}
+              {/* REDES SOCIALES Y CÓDIGOS QR DE CONTACTO */}
               <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 space-y-6">
-                <h3 className="text-base font-bold text-foundation-teal flex items-center gap-2 border-b border-gray-200/60 pb-2">
-                  <Share2 className="w-4.5 h-4.5" />
-                  Redes Sociales y Canales Oficiales
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Agregue o modifique los enlaces a sus perfiles en redes sociales. Deje el campo en blanco si no desea mostrar esa red social en el sitio público.
-                </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200/60 pb-3">
+                  <div>
+                    <h3 className="text-base font-bold text-foundation-teal flex items-center gap-2">
+                      <QrCode className="w-4.5 h-4.5 text-foundation-teal" />
+                      Redes Sociales y Códigos QR Dinámicos
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Ingrese las direcciones URL o números de contacto. Los códigos QR se generarán automáticamente desde cada URL/Número ingresado, o bien puede colocar la URL de un QR personalizado.
+                    </p>
+                  </div>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* WhatsApp */}
-                  <div className="sm:col-span-2 p-4 bg-emerald-50/60 rounded-xl border border-emerald-200/60 space-y-3">
-                    <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs uppercase">
-                      <Phone className="w-4 h-4 text-emerald-600" />
-                      <span>WhatsApp Oficial (Botón Flotante y Footer)</span>
+                  <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-xs uppercase">
+                        <Phone className="w-4 h-4 text-emerald-600" />
+                        <span>WhatsApp (QR & Direct Link)</span>
+                      </div>
+                      <span className="text-[10px] bg-emerald-200/60 text-emerald-900 px-2 py-0.5 rounded-full font-bold">Botón Flotante + QR</span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-2.5">
                       <div>
-                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Número WhatsApp (sin espacios ni guiones, con código país)</label>
+                        <label className="block text-[11px] font-bold text-emerald-900 mb-1">Número de WhatsApp (ej: 50688888888)</label>
                         <input
                           type="text"
                           value={config.whatsapp?.phone || ""}
                           onChange={(e) => handleWhatsAppChange("phone", e.target.value)}
-                          className="w-full px-3.5 py-2 bg-white border border-emerald-200 rounded-lg text-xs font-semibold outline-none focus:border-emerald-500"
+                          className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-semibold outline-none focus:border-emerald-600"
                           placeholder="50688888888"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Mensaje Predeterminado de Inicio</label>
+                        <label className="block text-[11px] font-bold text-emerald-900 mb-1">Mensaje Predeterminado</label>
                         <input
                           type="text"
                           value={config.whatsapp?.message || ""}
                           onChange={(e) => handleWhatsAppChange("message", e.target.value)}
-                          className="w-full px-3.5 py-2 bg-white border border-emerald-200 rounded-lg text-xs font-semibold outline-none focus:border-emerald-500"
-                          placeholder="¡Hola! Quisiera más información..."
+                          className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-semibold outline-none focus:border-emerald-600"
+                          placeholder="¡Hola! Quisiera información..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-emerald-900 mb-1">QR Personalizado (Opcional - Imagen URL)</label>
+                        <input
+                          type="text"
+                          value={config.contact?.whatsappQrUrl || ""}
+                          onChange={(e) => handleContactChange("whatsappQrUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-mono outline-none focus:border-emerald-600"
+                          placeholder="Deje en blanco para generar QR dinámico..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WeChat */}
+                  <div className="p-4 bg-green-50/70 rounded-2xl border border-green-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-green-900 font-extrabold text-xs uppercase">
+                        <MessageCircle className="w-4 h-4 text-green-600" />
+                        <span>WeChat</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-green-900 mb-1">WeChat ID o Enlace de Contacto</label>
+                        <input
+                          type="text"
+                          value={config.contact?.wechatUrl || ""}
+                          onChange={(e) => handleContactChange("wechatUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-green-300 rounded-xl text-xs font-semibold outline-none focus:border-green-600"
+                          placeholder="ID de WeChat o enlace u.wechat.com..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-green-900 mb-1">URL / Imagen del Código QR WeChat</label>
+                        <input
+                          type="text"
+                          value={config.contact?.wechatQrUrl || ""}
+                          onChange={(e) => handleContactChange("wechatQrUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-green-300 rounded-xl text-xs font-mono outline-none focus:border-green-600"
+                          placeholder="https://... (Sube o pega la imagen QR)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Line */}
+                  <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-200/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-xs uppercase">
+                        <MessageSquare className="w-4 h-4 text-emerald-500" />
+                        <span>Line App</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-emerald-900 mb-1">Enlace Oficial de Line (line.me)</label>
+                        <input
+                          type="text"
+                          value={config.contact?.lineUrl || ""}
+                          onChange={(e) => handleContactChange("lineUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-semibold outline-none focus:border-emerald-500"
+                          placeholder="https://line.me/ti/p/..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-emerald-900 mb-1">URL / Imagen del Código QR Line</label>
+                        <input
+                          type="text"
+                          value={config.contact?.lineQrUrl || ""}
+                          onChange={(e) => handleContactChange("lineQrUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-mono outline-none focus:border-emerald-500"
+                          placeholder="Deje en blanco para QR dinámico..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Instagram */}
+                  <div className="p-4 bg-pink-50/60 rounded-2xl border border-pink-200/70 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-pink-900 font-extrabold text-xs uppercase">
+                        <Instagram className="w-4 h-4 text-[#E4405F]" />
+                        <span>Instagram</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-pink-900 mb-1">Perfil de Instagram URL</label>
+                        <input
+                          type="text"
+                          value={config.contact?.instagramUrl || ""}
+                          onChange={(e) => handleContactChange("instagramUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-pink-300 rounded-xl text-xs font-semibold outline-none focus:border-[#E4405F]"
+                          placeholder="https://www.instagram.com/Fundacion..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-pink-900 mb-1">QR Personalizado (Opcional)</label>
+                        <input
+                          type="text"
+                          value={config.contact?.instagramQrUrl || ""}
+                          onChange={(e) => handleContactChange("instagramQrUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-pink-300 rounded-xl text-xs font-mono outline-none focus:border-[#E4405F]"
+                          placeholder="Deje en blanco para QR dinámico..."
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Facebook */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#1877F2]" />
-                      Facebook URL
-                    </label>
-                    <input
-                      type="text"
-                      value={config.contact?.facebookUrl || ""}
-                      onChange={(e) => handleContactChange("facebookUrl", e.target.value)}
-                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#1877F2]"
-                      placeholder="https://www.facebook.com/Fundacion..."
-                    />
-                  </div>
-
-                  {/* Instagram */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
-                      <Instagram className="w-3.5 h-3.5 text-[#E4405F]" />
-                      Instagram URL
-                    </label>
-                    <input
-                      type="text"
-                      value={config.contact?.instagramUrl || ""}
-                      onChange={(e) => handleContactChange("instagramUrl", e.target.value)}
-                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#E4405F]"
-                      placeholder="https://www.instagram.com/Fundacion..."
-                    />
+                  <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200/70 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-blue-900 font-extrabold text-xs uppercase">
+                        <Facebook className="w-4 h-4 text-[#1877F2]" />
+                        <span>Facebook</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-blue-900 mb-1">Página de Facebook URL</label>
+                        <input
+                          type="text"
+                          value={config.contact?.facebookUrl || ""}
+                          onChange={(e) => handleContactChange("facebookUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs font-semibold outline-none focus:border-[#1877F2]"
+                          placeholder="https://www.facebook.com/Fundacion..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-blue-900 mb-1">QR Personalizado (Opcional)</label>
+                        <input
+                          type="text"
+                          value={config.contact?.facebookQrUrl || ""}
+                          onChange={(e) => handleContactChange("facebookQrUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs font-mono outline-none focus:border-[#1877F2]"
+                          placeholder="Deje en blanco para QR dinámico..."
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* TikTok */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-black" />
-                      TikTok URL
-                    </label>
-                    <input
-                      type="text"
-                      value={config.contact?.tiktokUrl || ""}
-                      onChange={(e) => handleContactChange("tiktokUrl", e.target.value)}
-                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-black"
-                      placeholder="https://www.tiktok.com/@Fundacion..."
-                    />
-                  </div>
-
-                  {/* YouTube */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
-                      <Youtube className="w-3.5 h-3.5 text-[#FF0000]" />
-                      YouTube URL
-                    </label>
-                    <input
-                      type="text"
-                      value={config.contact?.youtubeUrl || ""}
-                      onChange={(e) => handleContactChange("youtubeUrl", e.target.value)}
-                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#FF0000]"
-                      placeholder="https://www.youtube.com/@Fundacion..."
-                    />
-                  </div>
-
-                  {/* Twitter / X */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
-                      <Twitter className="w-3.5 h-3.5 text-gray-800" />
-                      X / Twitter URL
-                    </label>
-                    <input
-                      type="text"
-                      value={config.contact?.twitterUrl || ""}
-                      onChange={(e) => handleContactChange("twitterUrl", e.target.value)}
-                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-gray-800"
-                      placeholder="https://x.com/Fundacion..."
-                    />
-                  </div>
-
-                  {/* LinkedIn */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
-                      <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
-                      LinkedIn URL
-                    </label>
-                    <input
-                      type="text"
-                      value={config.contact?.linkedinUrl || ""}
-                      onChange={(e) => handleContactChange("linkedinUrl", e.target.value)}
-                      className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#0A66C2]"
-                      placeholder="https://www.linkedin.com/company/Fundacion..."
-                    />
+                  <div className="p-4 bg-slate-100 rounded-2xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-slate-900 font-extrabold text-xs uppercase">
+                        <span className="w-2.5 h-2.5 rounded-full bg-black" />
+                        <span>TikTok</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-900 mb-1">Cuenta de TikTok URL</label>
+                        <input
+                          type="text"
+                          value={config.contact?.tiktokUrl || ""}
+                          onChange={(e) => handleContactChange("tiktokUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:border-black"
+                          placeholder="https://www.tiktok.com/@Fundacion..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-900 mb-1">QR Personalizado (Opcional)</label>
+                        <input
+                          type="text"
+                          value={config.contact?.tiktokQrUrl || ""}
+                          onChange={(e) => handleContactChange("tiktokQrUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono outline-none focus:border-black"
+                          placeholder="Deje en blanco para QR dinámico..."
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -2543,7 +2745,90 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                 </div>
               </div>
 
-              {/* BANNER REY DE REYES SECTION */}
+              {/* COLORES INSTITUCIONALES Y QR CORPORATIVO */}
+              <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 space-y-6">
+                <h3 className="text-base font-bold text-foundation-teal flex items-center gap-2 border-b border-gray-200/60 pb-2">
+                  <Sparkles className="w-4.5 h-4.5 text-foundation-teal" />
+                  Colores Institucionales y QR Corporativo
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Colors */}
+                  <div className="space-y-4">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Paleta de Colores de la Fundación</label>
+                    
+                    <div className="space-y-3 bg-white p-4 rounded-xl border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-600">Color Primario (Teal)</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={config.branding?.primaryColor || "#0D9488"}
+                            onChange={(e) => handleBrandingChange("primaryColor", e.target.value)}
+                            className="w-8 h-8 rounded-lg cursor-pointer border-0"
+                          />
+                          <span className="text-xs font-mono font-bold text-gray-700">{config.branding?.primaryColor || "#0D9488"}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-600">Color Secundario (Oscuro)</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={config.branding?.secondaryColor || "#111827"}
+                            onChange={(e) => handleBrandingChange("secondaryColor", e.target.value)}
+                            className="w-8 h-8 rounded-lg cursor-pointer border-0"
+                          />
+                          <span className="text-xs font-mono font-bold text-gray-700">{config.branding?.secondaryColor || "#111827"}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-600">Color de Acento (Ámbar/Dorado)</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={config.branding?.accentColor || "#F59E0B"}
+                            onChange={(e) => handleBrandingChange("accentColor", e.target.value)}
+                            className="w-8 h-8 rounded-lg cursor-pointer border-0"
+                          />
+                          <span className="text-xs font-mono font-bold text-gray-700">{config.branding?.accentColor || "#F59E0B"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Corporate QR */}
+                  <div className="space-y-4">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Código QR Corporativo General</label>
+                    
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-500 mb-1">URL de Imagen del QR Corporativo</label>
+                        <input
+                          type="text"
+                          value={config.branding?.corporateQrUrl || ""}
+                          onChange={(e) => handleBrandingChange("corporateQrUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:bg-white focus:border-foundation-teal"
+                          placeholder="https://... o suba la imagen"
+                        />
+                      </div>
+
+                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-foundation-teal hover:bg-foundation-teal-dark text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all w-full">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Subir QR Corporativo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(e, "corporateQr")}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 space-y-6">
                 <h3 className="text-base font-bold text-foundation-teal flex items-center gap-2 border-b border-gray-200/60 pb-2">
                   <Image className="w-4.5 h-4.5" />
@@ -3176,6 +3461,36 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                       className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:border-foundation-teal"
                       placeholder="Conoce nuestras actividades diarias y entérate de cómo puedes donar o ser voluntario..."
                     />
+                  </div>
+                </div>
+
+                {/* GOOGLE SEARCH CONSOLE SECTION */}
+                <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 space-y-4">
+                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-gray-200 pb-2">
+                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />
+                    Verificación de Google Search Console
+                  </h3>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Código de Verificación de Google (Meta Tag)</label>
+                    <input
+                      type="text"
+                      value={config.seo?.googleSiteVerification || ""}
+                      onChange={(e) => {
+                        setConfig({
+                          ...config,
+                          seo: {
+                            ...(config.seo || { title: "", description: "", ogTitle: "", ogDescription: "", ogImage: "", keywords: "" }),
+                            googleSiteVerification: e.target.value
+                          }
+                        });
+                      }}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:border-foundation-teal"
+                      placeholder="Pega aquí el código de verificación o el ID de meta tag de Google"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1.5 font-medium">
+                      Al colocar el código de verificación de Google Search Console, se insertará automáticamente en el &lt;head&gt; de la página la etiqueta: <code className="bg-gray-150 px-1 py-0.5 rounded text-gray-700 font-mono">&lt;meta name="google-site-verification" content="..." /&gt;</code>.
+                    </p>
                   </div>
                 </div>
               </div>

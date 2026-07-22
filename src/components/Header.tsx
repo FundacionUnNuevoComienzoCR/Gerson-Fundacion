@@ -33,8 +33,8 @@ export default function Header({ currentView, onViewChange, isLoggedIn, onLogout
   const filteredPrograms = searchQuery.trim()
     ? programs.filter(
         p =>
-          p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.description.toLowerCase().includes(searchQuery.toLowerCase())
+          (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.description || "").toLowerCase().includes(searchQuery.toLowerCase())
       )
     : [];
 
@@ -53,6 +53,7 @@ export default function Header({ currentView, onViewChange, isLoggedIn, onLogout
     { id: "sobre-nosotros", label: "Sobre Nosotros" },
     { id: "patrocinios", label: "Patrocinios" },
     { id: "galeria", label: "Galería" },
+    { id: "catalogo", label: "Catálogo de Artes" },
     { id: "donaciones", label: "Donaciones", isHighlight: true },
     { id: "contactenos", label: "Contáctenos" },
   ];
@@ -291,7 +292,7 @@ export default function Header({ currentView, onViewChange, isLoggedIn, onLogout
                             >
                               <div>
                                 <h4 className="text-xs font-extrabold text-gray-900 dark:text-gray-100 group-hover:text-foundation-teal transition-colors">
-                                  {prog.title}
+                                  {prog.name}
                                 </h4>
                                 <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-1">
                                   {prog.description}

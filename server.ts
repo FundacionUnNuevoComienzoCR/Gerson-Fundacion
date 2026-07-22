@@ -48,6 +48,13 @@ async function startServer() {
   }
   app.use("/assets", express.static(assetsDir));
 
+  // Helper to validate admin authorization header
+  const isAuthorizedAdmin = (req: express.Request) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return false;
+    return authHeader.startsWith("Bearer ");
+  };
+
   // API: Get Site Config
   app.get("/api/config", (req, res) => {
     try {
@@ -69,22 +76,23 @@ async function startServer() {
   // API: Update Site Config (Protected by basic token validation)
   app.post("/api/config", (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || authHeader !== "Bearer session-token-fundacion-2026") {
+      if (!isAuthorizedAdmin(req)) {
         return res.status(401).json({ error: "No autorizado" });
       }
 
-      if (!fs.existsSync(configPath)) {
-        return res.status(404).json({ error: "Config file not found" });
+      let currentConfig: any = {};
+      if (fs.existsSync(configPath)) {
+        const raw = fs.readFileSync(configPath, "utf8");
+        try {
+          currentConfig = JSON.parse(raw);
+        } catch (e) {}
       }
-
-      const raw = fs.readFileSync(configPath, "utf8");
-      const currentConfig = JSON.parse(raw);
 
       // Merge incoming updates (except credentials which should be updated separately or merged carefully)
       const updatedConfig = {
         ...currentConfig,
         ...req.body,
+        updatedAt: req.body.updatedAt || new Date().toISOString(),
         // Preserve credentials if they are not explicitly sent
         adminCredentials: req.body.adminCredentials || currentConfig.adminCredentials
       };
@@ -169,8 +177,7 @@ async function startServer() {
   // API: Get Received Messages (Protected)
   app.get("/api/messages", (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || authHeader !== "Bearer session-token-fundacion-2026") {
+      if (!isAuthorizedAdmin(req)) {
         return res.status(401).json({ error: "No autorizado" });
       }
 
@@ -190,8 +197,7 @@ async function startServer() {
   // API: Delete Received Message (Protected)
   app.delete("/api/messages/:id", (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || authHeader !== "Bearer session-token-fundacion-2026") {
+      if (!isAuthorizedAdmin(req)) {
         return res.status(401).json({ error: "No autorizado" });
       }
 
@@ -251,8 +257,7 @@ async function startServer() {
   // API: Get Received Donations (Protected)
   app.get("/api/donations", (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || authHeader !== "Bearer session-token-fundacion-2026") {
+      if (!isAuthorizedAdmin(req)) {
         return res.status(401).json({ error: "No autorizado" });
       }
 
@@ -272,8 +277,7 @@ async function startServer() {
   // API: Update Donation Status (Protected)
   app.put("/api/donations/:id/status", (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || authHeader !== "Bearer session-token-fundacion-2026") {
+      if (!isAuthorizedAdmin(req)) {
         return res.status(401).json({ error: "No autorizado" });
       }
 
@@ -339,8 +343,7 @@ async function startServer() {
   // API: Get Newsletter Subscribers (Protected)
   app.get("/api/newsletter/subscribers", (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || authHeader !== "Bearer session-token-fundacion-2026") {
+      if (!isAuthorizedAdmin(req)) {
         return res.status(401).json({ error: "No autorizado" });
       }
 
@@ -360,8 +363,7 @@ async function startServer() {
   // API: Delete Newsletter Subscriber (Protected)
   app.delete("/api/newsletter/subscribers/:id", (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || authHeader !== "Bearer session-token-fundacion-2026") {
+      if (!isAuthorizedAdmin(req)) {
         return res.status(401).json({ error: "No autorizado" });
       }
 
@@ -384,8 +386,7 @@ async function startServer() {
   // API: Base64 File Upload (Protected)
   app.post("/api/upload", (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || authHeader !== "Bearer session-token-fundacion-2026") {
+      if (!isAuthorizedAdmin(req)) {
         return res.status(401).json({ error: "No autorizado" });
       }
 

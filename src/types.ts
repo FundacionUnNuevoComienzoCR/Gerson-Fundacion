@@ -97,6 +97,18 @@ export interface DonationGoal {
 export interface BrandingConfig {
   logoUrl?: string;
   bannerUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  corporateQrUrl?: string;
+}
+
+export interface PromoArt {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  format?: "1080x1080" | "1200x630" | "auto";
 }
 
 export interface WhatsAppConfig {
@@ -115,12 +127,21 @@ export interface ContactConfig {
   phone: string;
   email: string;
   hours: string;
+  whatsappUrl?: string;
+  wechatUrl?: string;
+  lineUrl?: string;
   facebookUrl?: string;
   instagramUrl?: string;
   tiktokUrl?: string;
   youtubeUrl?: string;
   twitterUrl?: string;
   linkedinUrl?: string;
+  whatsappQrUrl?: string;
+  wechatQrUrl?: string;
+  lineQrUrl?: string;
+  instagramQrUrl?: string;
+  facebookQrUrl?: string;
+  tiktokQrUrl?: string;
   customSocialLinks?: CustomSocialLink[];
   coordinates?: {
     lat: number;
@@ -152,6 +173,7 @@ export interface AppConfig {
   faqs?: FAQItem[];
   seo?: SEOConfig;
   globalNotice?: GlobalNoticeConfig;
+  promoArts?: PromoArt[];
 }
 
 export interface SEOConfig {
@@ -161,6 +183,7 @@ export interface SEOConfig {
   ogTitle: string;
   ogDescription: string;
   ogImage: string;
+  googleSiteVerification?: string;
 }
 
 export interface GlobalNoticeConfig {

@@ -162,10 +162,13 @@
     "phone": "+506 4031 6633",
     "email": "fundacionunnuevocomienzocr@gmail.com",
     "hours": "Lunes — Viernes 8:00am - 5:00pm",
+    "whatsappUrl": "https://wa.me/50688888888",
+    "wechatUrl": "https://u.wechat.com/fundacion_cr",
+    "lineUrl": "https://line.me/ti/p/~fundacion_cr",
     "facebookUrl": "https://www.facebook.com/FundacionUnNuevoComienzoCR",
     "instagramUrl": "https://www.instagram.com/fundacionunnuevocomienzocr",
     "tiktokUrl": "https://www.tiktok.com/@fundacionunnuevocomienzocr",
-    "youtubeUrl": "",
+    "youtubeUrl": "https://www.youtube.com/@FundacionUnNuevoComienzoCR",
     "twitterUrl": "",
     "linkedinUrl": "",
     "customSocialLinks": [],
@@ -212,7 +215,43 @@
   ],
   "branding": {
     "logoUrl": "",
-    "bannerUrl": ""
+    "bannerUrl": "",
+    "primaryColor": "#3db8a5",
+    "secondaryColor": "#134e4a",
+    "accentColor": "#f8c300",
+    "corporateQrUrl": ""
+  },
+  "promoArts": [
+    {
+      "id": "pa-1",
+      "title": "Campaña Oficial SINPE Móvil",
+      "description": "Banner promocional para donaciones rápidas vía SINPE Móvil al 8888-8888.",
+      "imageUrl": "https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&q=80&w=1080",
+      "format": "1080x1080"
+    },
+    {
+      "id": "pa-2",
+      "title": "Comedor Infantil Nutriendo Futuro",
+      "description": "Arte oficial para compartir en Facebook e Instagram sobre nuestro programa de alimentación.",
+      "imageUrl": "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=1200",
+      "format": "1200x630"
+    },
+    {
+      "id": "pa-3",
+      "title": "Únete como Voluntario en Pavas",
+      "description": "Imagen informativa con código QR e información de contacto para nuevos voluntarios.",
+      "imageUrl": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&q=80&w=1080",
+      "format": "1080x1080"
+    }
+  ],
+  "seo": {
+    "title": "Fundación Un Nuevo Comienzo CR",
+    "description": "Fundación acreditada por el PANI dedicada a transformar vidas en Pavas, Costa Rica. Programas sociales, educativos y culturales para niños y jóvenes.",
+    "keywords": "fundación, costa rica, pavas, pani, ayuda social, donaciones, niños, educación, voluntariado",
+    "ogTitle": "Fundación Un Nuevo Comienzo CR",
+    "ogDescription": "Transformamos vidas que cambian vidas desde el corazón de Pavas, Costa Rica.",
+    "ogImage": "/assets/logo.png",
+    "googleSiteVerification": ""
   },
   "whatsapp": {
     "phone": "50688888888",

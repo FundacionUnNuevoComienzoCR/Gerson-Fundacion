@@ -158,16 +158,71 @@ export default function App() {
     fetchConfig();
   }, []);
 
+  // Dynamic Title & SEO Metatags per view
+  useEffect(() => {
+    const viewTitles: Record<string, string> = {
+      "inicio": "Fundación Un Nuevo Comienzo CR - Inicio",
+      "nosotros": "Fundación Un Nuevo Comienzo CR - Sobre Nosotros",
+      "programas": "Fundación Un Nuevo Comienzo CR - Programas Sociales",
+      "patrocinios": "Fundación Un Nuevo Comienzo CR - Patrocinios",
+      "galeria": "Fundación Un Nuevo Comienzo CR - Galería",
+      "donaciones": "Fundación Un Nuevo Comienzo CR - Donaciones",
+      "contacto": "Fundación Un Nuevo Comienzo CR - Contáctenos",
+      "admin-login": "Fundación Un Nuevo Comienzo CR - Acceso Administrador",
+      "admin-panel": "Fundación Un Nuevo Comienzo CR - Panel CMS"
+    };
+
+    const newTitle = viewTitles[currentView] || config?.seo?.title || "Fundación Un Nuevo Comienzo CR";
+    document.title = newTitle;
+
+    // Update google-site-verification meta tag if present
+    const verificationCode = config?.seo?.googleSiteVerification;
+    if (verificationCode) {
+      let metaEl = document.querySelector('meta[name="google-site-verification"]');
+      if (!metaEl) {
+        metaEl = document.createElement("meta");
+        metaEl.setAttribute("name", "google-site-verification");
+        document.head.appendChild(metaEl);
+      }
+      metaEl.setAttribute("content", verificationCode);
+    }
+  }, [currentView, config?.seo]);
+
   const fetchConfig = async () => {
     try {
       const res = await fetch("/api/config");
       if (res.ok) {
         const data = await res.json();
         if (data && typeof data === "object") {
-          setConfig(data);
+          // Check local cache
+          let localConfig: any = null;
           try {
-            localStorage.setItem("foundation_cms_config", JSON.stringify(data));
+            const saved = localStorage.getItem("foundation_cms_config");
+            if (saved) localConfig = JSON.parse(saved);
           } catch (e) {}
+
+          const serverTime = data.updatedAt ? new Date(data.updatedAt).getTime() : 0;
+          const localTime = localConfig?.updatedAt ? new Date(localConfig.updatedAt).getTime() : 0;
+
+          if (localConfig && localTime > serverTime) {
+            // Local storage has newer edits - keep them and sync back to server
+            setConfig(localConfig);
+            const savedToken = localStorage.getItem("admin_token") || "session-token-fundacion-2026";
+            fetch("/api/config", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${savedToken}`
+              },
+              body: JSON.stringify(localConfig)
+            }).catch(() => {});
+          } else {
+            // Server data is up to date or newer
+            setConfig(data);
+            try {
+              localStorage.setItem("foundation_cms_config", JSON.stringify(data));
+            } catch (e) {}
+          }
         }
       }
     } catch (err) {
