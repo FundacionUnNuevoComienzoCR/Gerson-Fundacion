@@ -273,6 +273,10 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
             const updatedArts = [...(config.promoArts || [])];
             updatedArts[field.index] = { ...updatedArts[field.index], imageUrl: finalUrl };
             setConfig(prev => ({ ...prev, promoArts: updatedArts }));
+          } else if (field.type === "founder") {
+            const updatedFounders = [...(config.founders || [])];
+            updatedFounders[field.index] = { ...updatedFounders[field.index], imageUrl: finalUrl };
+            setConfig(prev => ({ ...prev, founders: updatedFounders }));
           }
         }
         alert("¡Imagen subida con éxito y vista previa generada!");
@@ -336,6 +340,32 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
     if (!config.testimonials) return;
     const filtered = config.testimonials.filter((_, idx) => idx !== index);
     setConfig({ ...config, testimonials: filtered });
+  };
+
+  // Founders management
+  const handleFounderChange = (index: number, field: keyof Founder, value: string) => {
+    const updated = [...(config.founders || [])];
+    updated[index] = { ...updated[index], [field]: value };
+    setConfig({ ...config, founders: updated });
+  };
+
+  const handleAddFounder = () => {
+    const newFounder: Founder = {
+      id: "f-" + Date.now(),
+      name: "Nuevo Fundador",
+      role: "Líder Institucional",
+      description: "Descripción breve sobre el liderazgo y rol de esta persona en la institución...",
+      imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300"
+    };
+    setConfig({
+      ...config,
+      founders: [...(config.founders || []), newFounder]
+    });
+  };
+
+  const handleRemoveFounder = (index: number) => {
+    const filtered = (config.founders || []).filter((_, idx) => idx !== index);
+    setConfig({ ...config, founders: filtered });
   };
 
   // Promo Arts management
@@ -2314,6 +2344,130 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* MÓDULO DINÁMICO: NUESTROS FUNDADORES */}
+                <div className="border-t border-gray-150 pt-8 mt-8 space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/80 p-5 rounded-2xl border border-gray-150">
+                    <div>
+                      <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                        <Users className="w-5 h-5 text-foundation-teal" />
+                        Nuestros Fundadores
+                      </h3>
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-0.5">
+                        Líderes de la institución
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Administre los perfiles de los líderes y fundadores que se muestran públicamente en la sección "Sobre Nosotros".
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddFounder}
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-foundation-teal hover:bg-foundation-teal-dark text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer hover:scale-105 self-start sm:self-auto"
+                    >
+                      <Plus className="w-4 h-4" />
+                      + Añadir persona
+                    </button>
+                  </div>
+
+                  {(!config.founders || config.founders.length === 0) ? (
+                    <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-3xl space-y-2">
+                      <Users className="w-10 h-10 mx-auto stroke-1 text-gray-300" />
+                      <p className="text-sm font-bold">No hay fundadores registrados.</p>
+                      <p className="text-xs">Haga clic en "+ Añadir persona" para agregar el primer fundador.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {config.founders.map((founder, index) => (
+                        <div key={founder.id || index} className="p-6 bg-gray-50/80 rounded-3xl border border-gray-150 space-y-5 relative group">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFounder(index)}
+                            className="absolute top-4 right-4 p-2 bg-red-50 hover:bg-red-100 text-foundation-red rounded-xl transition-all cursor-pointer shadow-xs"
+                            title="Eliminar Fundador"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+
+                          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                            {/* Circular Photo Preview & Upload */}
+                            <div className="flex flex-col items-center space-y-2 flex-shrink-0">
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400">Foto de Perfil</label>
+                              <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-200 relative">
+                                <img
+                                  src={getDirectDriveImageUrl(founder.imageUrl)}
+                                  alt={founder.name || "Foto del fundador"}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as any).src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300";
+                                  }}
+                                />
+                              </div>
+                              <label className="flex items-center gap-1 px-3 py-1 bg-white border border-gray-200 hover:border-foundation-teal rounded-lg text-[10px] font-black text-gray-700 hover:text-foundation-teal cursor-pointer shadow-xs transition-all">
+                                <Upload className="w-3 h-3" />
+                                <span>Subir Foto</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handleFileUpload(e, { type: "founder", index })}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+
+                            {/* Inputs */}
+                            <div className="flex-1 w-full space-y-3">
+                              <div>
+                                <label className="block text-[10px] font-black text-gray-500 uppercase mb-1">Nombre Completo</label>
+                                <input
+                                  type="text"
+                                  value={founder.name}
+                                  onChange={(e) => handleFounderChange(index, "name", e.target.value)}
+                                  placeholder="Ej: Gerson López Mora"
+                                  className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-sm font-extrabold text-gray-900 outline-none focus:border-foundation-teal"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-black text-gray-500 uppercase mb-1">Cargo / Rol</label>
+                                <input
+                                  type="text"
+                                  value={founder.role}
+                                  onChange={(e) => handleFounderChange(index, "role", e.target.value)}
+                                  placeholder="Ej: Presidente"
+                                  className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-foundation-teal outline-none focus:border-foundation-teal"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-black text-gray-500 uppercase mb-1">URL de la Foto (Google Drive o Unsplash)</label>
+                                <input
+                                  type="text"
+                                  value={founder.imageUrl}
+                                  onChange={(e) => handleFounderChange(index, "imageUrl", e.target.value)}
+                                  placeholder="https://..."
+                                  className="w-full px-3.5 py-1.5 bg-white border border-gray-200 rounded-xl text-[11px] font-mono outline-none focus:border-foundation-teal"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-black text-gray-500 uppercase mb-1">Descripción Breve</label>
+                                <textarea
+                                  rows={3}
+                                  value={founder.description}
+                                  onChange={(e) => handleFounderChange(index, "description", e.target.value)}
+                                  placeholder="Breve reseña sobre el liderazgo y rol de esta persona..."
+                                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-foundation-teal"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
               </div>
