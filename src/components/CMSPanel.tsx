@@ -37,7 +37,10 @@ import {
   PieChart as PieChartIcon,
   QrCode,
   MessageCircle,
-  Facebook
+  Facebook,
+  Copy,
+  Printer,
+  Check
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -54,7 +57,7 @@ import {
   AreaChart, 
   Area 
 } from "recharts";
-import { AppConfig, ContactMessage, BankAccount, Program, Founder, Testimonial, Sponsor, DonationGoal, BrandingConfig, WhatsAppConfig, FAQItem, SEOConfig, GlobalNoticeConfig, PromoArt } from "../types";
+import { AppConfig, ContactMessage, BankAccount, Program, Founder, Testimonial, Sponsor, DonationGoal, BrandingConfig, WhatsAppConfig, FAQItem, SEOConfig, GlobalNoticeConfig, PromoArt, CustomQRItem } from "../types";
 import { getDirectDriveImageUrl } from "../utils/drive";
 import { compressImage } from "../utils/compressor";
 
@@ -72,7 +75,7 @@ interface NewsletterSubscriber {
 
 export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPanelProps) {
   // Local state for all fields
-  const [activeTab, setActiveTab] = useState<"logo" | "donations" | "analytics" | "promo" | "home" | "about" | "programs" | "messages" | "testimonials" | "sponsors" | "newsletter" | "branding" | "faqs" | "reports" | "seo" | "globalNotice" | "gallery">("donations");
+  const [activeTab, setActiveTab] = useState<"logo" | "donations" | "analytics" | "promo" | "home" | "about" | "programs" | "messages" | "testimonials" | "sponsors" | "newsletter" | "branding" | "faqs" | "reports" | "seo" | "globalNotice" | "gallery" | "footer">("donations");
   const [config, setConfig] = useState<AppConfig>(initialConfig);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
@@ -424,6 +427,197 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
   const handleRemoveCustomSocialLink = (index: number) => {
     const currentLinks = (config.contact?.customSocialLinks || []).filter((_, idx) => idx !== index);
     handleContactChange("customSocialLinks", currentLinks);
+  };
+
+  // Custom QR Manager functions
+  const handleAddCustomQr = () => {
+    const newQr: CustomQRItem = {
+      id: "qr-" + Date.now(),
+      title: "Nuevo Código QR",
+      data: "https://fundacionunnuevocomienzo.cr",
+      imageUrl: ""
+    };
+    const currentQrs = config.contact?.customQrs || [];
+    handleContactChange("customQrs", [...currentQrs, newQr]);
+  };
+
+  const handleUpdateCustomQr = (index: number, field: keyof CustomQRItem, value: string) => {
+    const currentQrs = [...(config.contact?.customQrs || [])];
+    currentQrs[index] = { ...currentQrs[index], [field]: value };
+    handleContactChange("customQrs", currentQrs);
+  };
+
+  const handleRemoveCustomQr = (index: number) => {
+    const currentQrs = (config.contact?.customQrs || []).filter((_, idx) => idx !== index);
+    handleContactChange("customQrs", currentQrs);
+  };
+
+  const handleCopyQr = async (title: string, dataOrUrl: string, customQrUrl?: string) => {
+    const qrUrl = customQrUrl && customQrUrl.trim().length > 0
+      ? customQrUrl
+      : (dataOrUrl && dataOrUrl.trim().length > 0
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(dataOrUrl)}`
+        : "");
+    if (!qrUrl) {
+      alert("Por favor ingrese un dato o URL válido para generar y copiar el código QR.");
+      return;
+    }
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = qrUrl;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width || 300;
+          canvas.height = img.height || 300;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                navigator.clipboard.write([
+                  new ClipboardItem({ "image/png": blob })
+                ]).then(() => {
+                  alert(`¡Imagen del Código QR "${title}" copiada al portapapeles!`);
+                }).catch(() => {
+                  navigator.clipboard.writeText(qrUrl);
+                  alert(`¡Enlace del Código QR "${title}" copiado al portapapeles!`);
+                });
+              }
+            }, "image/png");
+          }
+        };
+        img.onerror = () => {
+          navigator.clipboard.writeText(qrUrl);
+          alert(`¡Enlace del Código QR "${title}" copiado al portapapeles!`);
+        };
+      } else {
+        await navigator.clipboard.writeText(qrUrl);
+        alert(`¡Enlace del Código QR "${title}" copiado al portapapeles!`);
+      }
+    } catch (err) {
+      navigator.clipboard.writeText(qrUrl);
+      alert(`¡Enlace del Código QR "${title}" copiado al portapapeles!`);
+    }
+  };
+
+  const handlePrintQr = (title: string, dataOrUrl: string, customQrUrl?: string) => {
+    const qrUrl = customQrUrl && customQrUrl.trim().length > 0
+      ? customQrUrl
+      : (dataOrUrl && dataOrUrl.trim().length > 0
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(dataOrUrl)}`
+        : "");
+    if (!qrUrl) {
+      alert("Por favor ingrese una URL o número primero para imprimir el código QR.");
+      return;
+    }
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Por favor habilite las ventanas emergentes (pop-ups) para imprimir el código QR.");
+      return;
+    }
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Imprimir QR - ${title}</title>
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; padding: 40px; color: #111827; }
+            .card { border: 2px solid #0d9488; border-radius: 24px; padding: 32px; display: inline-block; max-width: 380px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+            .logo { font-size: 16px; font-weight: 900; color: #0d9488; text-transform: uppercase; margin-bottom: 4px; }
+            .sublogo { font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 20px; }
+            .qr-box { background: #f9fafb; padding: 16px; border-radius: 16px; border: 1px solid #e5e7eb; display: inline-block; margin-bottom: 16px; }
+            .qr-box img { width: 240px; height: 240px; object-fit: contain; }
+            .title { font-size: 18px; font-weight: 800; color: #111827; margin-bottom: 6px; }
+            .data { font-size: 12px; font-family: monospace; color: #4b5563; word-break: break-all; margin-bottom: 20px; background: #f3f4f6; padding: 6px 12px; border-radius: 8px; }
+            .footer { font-size: 11px; color: #9ca3af; font-weight: 700; text-transform: uppercase; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo">Fundación Un Nuevo Comienzo</div>
+            <div class="sublogo">Costa Rica — Canal Oficial</div>
+            <div class="title">${title}</div>
+            <div class="qr-box">
+              <img src="${qrUrl}" alt="QR ${title}" />
+            </div>
+            <div class="data">${dataOrUrl || "Código QR"}</div>
+            <div class="footer">Escanee con la cámara de su teléfono</div>
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 400);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  // Footer management handlers
+  const handleFooterChange = (field: string, value: any) => {
+    setConfig(prev => ({
+      ...prev,
+      footer: {
+        year: prev.footer?.year || "2026",
+        autoUpdateYear: prev.footer?.autoUpdateYear || false,
+        organizationName: prev.footer?.organizationName || "Fundación Un Nuevo Comienzo C.R",
+        designers: prev.footer?.designers || [
+          "Cristhian Martínez",
+          "Katherine Martínez",
+          "Robert Ramírez",
+          "Valeria Rojas"
+        ],
+        additionalCredits: prev.footer?.additionalCredits || [],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleAddDesigner = () => {
+    const currentDesigners = config.footer?.designers || [
+      "Cristhian Martínez",
+      "Katherine Martínez",
+      "Robert Ramírez",
+      "Valeria Rojas"
+    ];
+    handleFooterChange("designers", [...currentDesigners, "Nuevo Colaborador"]);
+  };
+
+  const handleDesignerChange = (index: number, value: string) => {
+    const currentDesigners = [...(config.footer?.designers || [])];
+    currentDesigners[index] = value;
+    handleFooterChange("designers", currentDesigners);
+  };
+
+  const handleRemoveDesigner = (index: number) => {
+    const currentDesigners = [...(config.footer?.designers || [])];
+    currentDesigners.splice(index, 1);
+    handleFooterChange("designers", currentDesigners);
+  };
+
+  const handleAddAdditionalCredit = () => {
+    const currentCredits = config.footer?.additionalCredits || [];
+    handleFooterChange("additionalCredits", [
+      ...currentCredits,
+      { id: `credit_${Date.now()}`, label: "Desarrollo Web por", value: "Equipo Técnico" }
+    ]);
+  };
+
+  const handleAdditionalCreditChange = (index: number, field: "label" | "value", value: string) => {
+    const currentCredits = [...(config.footer?.additionalCredits || [])];
+    currentCredits[index] = { ...currentCredits[index], [field]: value };
+    handleFooterChange("additionalCredits", currentCredits);
+  };
+
+  const handleRemoveAdditionalCredit = (index: number) => {
+    const currentCredits = [...(config.footer?.additionalCredits || [])];
+    currentCredits.splice(index, 1);
+    handleFooterChange("additionalCredits", currentCredits);
   };
 
   // FAQs management
@@ -800,6 +994,7 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
               { id: "globalNotice", label: "Anuncio Banner Global", icon: Megaphone },
               { id: "seo", label: "SEO y Metatags", icon: Globe },
               { id: "faqs", label: "Preguntas Frecuentes (FAQ)", icon: HelpCircle },
+              { id: "footer", label: "🦶 Pie de Página (Footer)", icon: LayoutDashboard },
               { id: "newsletter", label: "Suscriptores Newsletter", icon: Mail, badge: subscribers.length || undefined },
               { id: "messages", label: "Mensajes de Contacto", icon: MessageSquare, badge: messages.length || undefined },
             ].map((tab) => {
@@ -2333,6 +2528,17 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                           </div>
 
                           <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Enlace / URL de la Foto de la Persona</label>
+                            <input
+                              type="text"
+                              value={test.imageUrl || ""}
+                              onChange={(e) => handleTestimonialChange(index, "imageUrl", e.target.value)}
+                              className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-mono outline-none focus:border-foundation-teal"
+                              placeholder="https://... (o use el botón Subir Foto a la izquierda)"
+                            />
+                          </div>
+
+                          <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mensaje / Testimonio</label>
                             <textarea
                               value={test.text}
@@ -2419,7 +2625,7 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                   <div>
                     <h3 className="text-base font-bold text-foundation-teal flex items-center gap-2">
                       <QrCode className="w-4.5 h-4.5 text-foundation-teal" />
-                      Redes Sociales y Códigos QR Dinámicos
+                      Redes Sociales y Canales Oficiales
                     </h3>
                     <p className="text-xs text-gray-500 mt-0.5">
                       Ingrese las direcciones URL o números de contacto. Los códigos QR se generarán automáticamente desde cada URL/Número ingresado, o bien puede colocar la URL de un QR personalizado.
@@ -2427,7 +2633,7 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* WhatsApp */}
                   <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-3">
                     <div className="flex items-center justify-between">
@@ -2435,7 +2641,7 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                         <Phone className="w-4 h-4 text-emerald-600" />
                         <span>WhatsApp (QR & Direct Link)</span>
                       </div>
-                      <span className="text-[10px] bg-emerald-200/60 text-emerald-900 px-2 py-0.5 rounded-full font-bold">Botón Flotante + QR</span>
+                      <span className="text-[10px] bg-emerald-200/60 text-emerald-900 px-2 py-0.5 rounded-full font-bold">Botón Flotante</span>
                     </div>
                     <div className="grid grid-cols-1 gap-2.5">
                       <div>
@@ -2466,6 +2672,39 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                           onChange={(e) => handleContactChange("whatsappQrUrl", e.target.value)}
                           className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-mono outline-none focus:border-emerald-600"
                           placeholder="Deje en blanco para generar QR dinámico..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Telegram */}
+                  <div className="p-4 bg-sky-50/80 rounded-2xl border border-sky-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sky-900 font-extrabold text-xs uppercase">
+                        <Send className="w-4 h-4 text-sky-600" />
+                        <span>Telegram</span>
+                      </div>
+                      <span className="text-[10px] bg-sky-200/60 text-sky-900 px-2 py-0.5 rounded-full font-bold">Canal Oficial</span>
+                    </div>
+                    <div className="space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-sky-900 mb-1">Enlace o Usuario de Telegram</label>
+                        <input
+                          type="text"
+                          value={config.contact?.telegramUrl || ""}
+                          onChange={(e) => handleContactChange("telegramUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-sky-300 rounded-xl text-xs font-semibold outline-none focus:border-sky-600"
+                          placeholder="https://t.me/Fundacion..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-sky-900 mb-1">URL / Imagen del Código QR Telegram</label>
+                        <input
+                          type="text"
+                          value={config.contact?.telegramQrUrl || ""}
+                          onChange={(e) => handleContactChange("telegramQrUrl", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-sky-300 rounded-xl text-xs font-mono outline-none focus:border-sky-600"
+                          placeholder="Deje en blanco para QR dinámico..."
                         />
                       </div>
                     </div>
@@ -2637,7 +2876,7 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                   <div className="flex justify-between items-center">
                     <div>
                       <h4 className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Enlaces o Redes Adicionales Personalizadas</h4>
-                      <p className="text-[11px] text-gray-400">¿Desea agregar otros canales como Telegram, Threads, Spotify, etc.? Agréguelos aquí.</p>
+                      <p className="text-[11px] text-gray-400">¿Desea agregar otros canales como Threads, Spotify, etc.? Agréguelos aquí.</p>
                     </div>
                     <button
                       type="button"
@@ -2685,6 +2924,156 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* GESTOR DE QR (MÓDULO SOLICITADO) */}
+              <div className="p-6 bg-white rounded-3xl border-2 border-foundation-teal/30 shadow-md space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="p-2 bg-foundation-teal/10 rounded-xl text-foundation-teal">
+                        <QrCode className="w-5 h-5" />
+                      </span>
+                      <h3 className="text-lg font-black text-gray-900">
+                        Gestor de QR
+                      </h3>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Cree y administre códigos QR ilimitados para WhatsApp, Instagram, WeChat, Line, páginas web o canales personalizados. Cada entrada permite generar, copiar o imprimir el código QR con un clic.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddCustomQr}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-foundation-teal hover:bg-foundation-teal-dark text-white rounded-xl text-xs font-extrabold shadow-md transition-all cursor-pointer hover:scale-105 self-start sm:self-auto"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Añadir Código QR</span>
+                  </button>
+                </div>
+
+                {(!config.contact?.customQrs || config.contact.customQrs.length === 0) ? (
+                  <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-300 space-y-3">
+                    <QrCode className="w-10 h-10 text-gray-300 mx-auto" />
+                    <p className="text-xs font-bold text-gray-600">No hay códigos QR adicionales agregados.</p>
+                    <p className="text-[11px] text-gray-400">Haga clic en "+ Añadir Código QR" para crear su primera tarjeta de QR personalizada.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {config.contact.customQrs.map((item, index) => {
+                      const computedQrUrl = item.imageUrl && item.imageUrl.trim().length > 0
+                        ? item.imageUrl
+                        : (item.data && item.data.trim().length > 0
+                          ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(item.data)}`
+                          : "");
+
+                      return (
+                        <div key={item.id || index} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 space-y-4 relative hover:border-foundation-teal/50 transition-all">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomQr(index)}
+                            className="absolute top-4 right-4 p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                            title="Eliminar QR"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                            {/* QR Preview Box */}
+                            <div className="sm:col-span-5 flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-gray-200">
+                              <span className="text-[10px] font-extrabold text-gray-400 uppercase mb-2">Código QR Generado</span>
+                              {computedQrUrl ? (
+                                <img
+                                  src={computedQrUrl}
+                                  alt={`QR ${item.title}`}
+                                  className="w-28 h-28 object-contain rounded-lg border border-gray-100"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <div className="w-28 h-28 bg-gray-100 rounded-lg flex items-center justify-center text-[10px] text-gray-400 font-bold text-center p-2">
+                                  Ingrese dato o URL
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Inputs and Controls */}
+                            <div className="sm:col-span-7 space-y-3">
+                              <div>
+                                <label className="block text-[10px] font-extrabold text-gray-500 uppercase mb-1">Título del QR</label>
+                                <input
+                                  type="text"
+                                  value={item.title}
+                                  onChange={(e) => handleUpdateCustomQr(index, "title", e.target.value)}
+                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none focus:border-foundation-teal"
+                                  placeholder="Ej: WhatsApp, Instagram, WeChat, Line..."
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-extrabold text-gray-500 uppercase mb-1">Dato o URL (Número o Enlace)</label>
+                                <input
+                                  type="text"
+                                  value={item.data}
+                                  onChange={(e) => handleUpdateCustomQr(index, "data", e.target.value)}
+                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-mono outline-none focus:border-foundation-teal"
+                                  placeholder="https://... o número de teléfono"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-extrabold text-gray-500 uppercase mb-1">URL de Imagen Personalizada (Opcional)</label>
+                                <input
+                                  type="text"
+                                  value={item.imageUrl || ""}
+                                  onChange={(e) => handleUpdateCustomQr(index, "imageUrl", e.target.value)}
+                                  className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[11px] font-mono outline-none focus:border-foundation-teal"
+                                  placeholder="Deje vacío para generar automáticamente"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons: Generar QR, Copiar Imagen, Imprimir QR */}
+                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-200">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!item.data) {
+                                  alert("Por favor ingrese un número o URL en el campo de datos.");
+                                  return;
+                                }
+                                alert(`¡Código QR "${item.title}" actualizado dinámicamente!`);
+                              }}
+                              className="py-2 px-2 bg-foundation-teal hover:bg-foundation-teal-dark text-white rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs"
+                            >
+                              <QrCode className="w-3.5 h-3.5" />
+                              <span>Generar QR</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCopyQr(item.title, item.data, item.imageUrl)}
+                              className="py-2 px-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copiar Imagen</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handlePrintQr(item.title, item.data, item.imageUrl)}
+                              className="py-2 px-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                              <span>Imprimir QR</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* LOGOTIPO SECTION */}
@@ -2804,27 +3193,81 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Código QR Corporativo General</label>
                     
                     <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                      <div>
-                        <label className="block text-[11px] font-bold text-gray-500 mb-1">URL de Imagen del QR Corporativo</label>
-                        <input
-                          type="text"
-                          value={config.branding?.corporateQrUrl || ""}
-                          onChange={(e) => handleBrandingChange("corporateQrUrl", e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:bg-white focus:border-foundation-teal"
-                          placeholder="https://... o suba la imagen"
-                        />
+                      <div className="flex items-center gap-4">
+                        <div className="w-24 h-24 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center p-2 flex-shrink-0">
+                          {config.branding?.corporateQrUrl ? (
+                            <img
+                              src={config.branding.corporateQrUrl}
+                              alt="QR Corporativo"
+                              className="w-full h-full object-contain"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="text-[10px] text-gray-400 font-bold text-center">
+                              Sin QR Corporativo
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 space-y-2">
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-500 mb-1">URL o Dato del QR Corporativo</label>
+                            <input
+                              type="text"
+                              value={config.branding?.corporateQrUrl || ""}
+                              onChange={(e) => handleBrandingChange("corporateQrUrl", e.target.value)}
+                              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:bg-white focus:border-foundation-teal"
+                              placeholder="https://... o suba la imagen"
+                            />
+                          </div>
+
+                          <label className="flex items-center justify-center gap-2 px-3 py-1.5 bg-foundation-teal hover:bg-foundation-teal-dark text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all w-full">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Subir Imagen QR Corporativo</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileUpload(e, "corporateQr")}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
                       </div>
 
-                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-foundation-teal hover:bg-foundation-teal-dark text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all w-full">
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Subir QR Corporativo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFileUpload(e, "corporateQr")}
-                          className="hidden"
-                        />
-                      </label>
+                      {/* Actions: Generar, Copiar, Imprimir */}
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!config.branding?.corporateQrUrl) {
+                              handleBrandingChange("corporateQrUrl", `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent("https://fundacionunnuevocomienzo.cr")}`);
+                            }
+                            alert("¡Código QR Corporativo actualizado!");
+                          }}
+                          className="py-2 px-2 bg-foundation-teal text-white rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-foundation-teal-dark transition-colors cursor-pointer"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          <span>Generar</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleCopyQr("QR Corporativo", "https://fundacionunnuevocomienzo.cr", config.branding?.corporateQrUrl)}
+                          className="py-2 px-2 bg-gray-100 text-gray-800 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-gray-200 transition-colors cursor-pointer"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copiar</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handlePrintQr("QR Corporativo Oficial", "https://fundacionunnuevocomienzo.cr", config.branding?.corporateQrUrl)}
+                          className="py-2 px-2 bg-emerald-100 text-emerald-900 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-emerald-200 transition-colors cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Imprimir</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3492,6 +3935,260 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
                       Al colocar el código de verificación de Google Search Console, se insertará automáticamente en el &lt;head&gt; de la página la etiqueta: <code className="bg-gray-150 px-1 py-0.5 rounded text-gray-700 font-mono">&lt;meta name="google-site-verification" content="..." /&gt;</code>.
                     </p>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: FOOTER / PIE DE PÁGINA DINÁMICO */}
+          {activeTab === "footer" && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="border-b border-gray-150 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <LayoutDashboard className="w-5 h-5 text-foundation-teal" />
+                    Módulo de Pie de Página (Footer)
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Administra dinámicamente el año de copyright, nombre de la organización, la lista editable de diseñadores/colaboradores y créditos adicionales.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSaveConfig()}
+                  disabled={loading}
+                  className="px-5 py-2.5 bg-foundation-teal hover:bg-foundation-teal-dark text-white text-xs font-extrabold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer self-start hover:scale-105"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Guardar Pie de Página</span>
+                </button>
+              </div>
+
+              {/* CARD 1: INFORMACIÓN PRINCIPAL (AÑO Y ORGANIZACIÓN) */}
+              <div className="p-6 bg-gray-50/80 rounded-2xl border border-gray-150 space-y-5">
+                <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider border-b border-gray-200 pb-2">
+                  Información Principal
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Año */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-gray-600 uppercase">Año de Copyright</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={config.footer?.year || "2026"}
+                        onChange={(e) => handleFooterChange("year", e.target.value)}
+                        className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-foundation-teal"
+                        placeholder="Ej: 2026"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleFooterChange("year", new Date().getFullYear().toString())}
+                        className="px-3 py-2 bg-foundation-teal/10 hover:bg-foundation-teal/20 text-foundation-teal text-xs font-extrabold rounded-xl transition-all cursor-pointer shrink-0"
+                        title="Usar año actual en curso"
+                      >
+                        Año Actual ({new Date().getFullYear()})
+                      </button>
+                    </div>
+
+                    <label className="flex items-center gap-2 mt-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={config.footer?.autoUpdateYear || false}
+                        onChange={(e) => handleFooterChange("autoUpdateYear", e.target.checked)}
+                        className="w-4 h-4 text-foundation-teal rounded focus:ring-foundation-teal"
+                      />
+                      <span className="text-xs font-semibold text-gray-700">
+                        Actualizar año automáticamente en cada cambio de año ({new Date().getFullYear()})
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Nombre de la Organización */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Nombre de la Organización</label>
+                    <input
+                      type="text"
+                      value={config.footer?.organizationName || "Fundación Un Nuevo Comienzo C.R"}
+                      onChange={(e) => handleFooterChange("organizationName", e.target.value)}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-foundation-teal"
+                      placeholder="Ej: Fundación Un Nuevo Comienzo C.R"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Aparecerá en el formato: <code className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-700">[Año] - [Nombre de la organización]</code>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 2: LISTA DE DISEÑADORES Y COLABORADORES */}
+              <div className="p-6 bg-gray-50/80 rounded-2xl border border-gray-150 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 pb-3">
+                  <div>
+                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">
+                      Diseñadores y Colaboradores
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Añada, edite o elimine colaboradores. Los nombres se concatenarán en el pie de página ("Diseño por A, B, C y D").
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddDesigner}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-foundation-teal hover:bg-foundation-teal-dark text-white rounded-xl text-xs font-extrabold shadow-sm transition-all cursor-pointer self-start sm:self-auto hover:scale-105"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Añadir Diseñador</span>
+                  </button>
+                </div>
+
+                {(!config.footer?.designers || config.footer.designers.length === 0) ? (
+                  <div className="p-8 text-center bg-white rounded-xl border border-dashed border-gray-300 space-y-2">
+                    <p className="text-xs font-bold text-gray-500">No hay colaboradores añadidos.</p>
+                    <p className="text-[11px] text-gray-400">Haga clic en "+ Añadir Diseñador" para agregar el primer nombre.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {config.footer.designers.map((designer, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                        <span className="w-6 h-6 rounded-lg bg-gray-100 text-gray-500 font-extrabold text-[11px] flex items-center justify-center shrink-0">
+                          #{idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={designer}
+                          onChange={(e) => handleDesignerChange(idx, e.target.value)}
+                          className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold outline-none focus:bg-white focus:border-foundation-teal"
+                          placeholder="Nombre del diseñador..."
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDesigner(idx)}
+                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                          title="Eliminar diseñador"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* CARD 3: CRÉDITOS O RECONOCIMIENTOS ADICIONALES */}
+              <div className="p-6 bg-gray-50/80 rounded-2xl border border-gray-150 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 pb-3">
+                  <div>
+                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">
+                      Créditos Adicionales (Opcional)
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Agregue otros reconocimientos como "Desarrollo web por...", "Patrocinio de...", "Fotografía por...", etc.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddAdditionalCredit}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all cursor-pointer self-start sm:self-auto hover:scale-105"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Añadir Crédito</span>
+                  </button>
+                </div>
+
+                {(!config.footer?.additionalCredits || config.footer.additionalCredits.length === 0) ? (
+                  <div className="p-6 text-center bg-white rounded-xl border border-dashed border-gray-300">
+                    <p className="text-xs text-gray-400 font-semibold">No hay créditos adicionales configurados.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {config.footer.additionalCredits.map((credit, idx) => (
+                      <div key={credit.id || idx} className="grid grid-cols-1 sm:grid-cols-12 gap-3 p-3 bg-white rounded-xl border border-gray-200 items-center">
+                        <div className="sm:col-span-5">
+                          <label className="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Etiqueta / Rol</label>
+                          <input
+                            type="text"
+                            value={credit.label}
+                            onChange={(e) => handleAdditionalCreditChange(idx, "label", e.target.value)}
+                            className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold outline-none focus:bg-white focus:border-foundation-teal"
+                            placeholder="Ej: Desarrollo web por"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-6">
+                          <label className="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Nombre / Empresa / Valor</label>
+                          <input
+                            type="text"
+                            value={credit.value}
+                            onChange={(e) => handleAdditionalCreditChange(idx, "value", e.target.value)}
+                            className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold outline-none focus:bg-white focus:border-foundation-teal"
+                            placeholder="Ej: Equipo de Sistemas"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-1 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAdditionalCredit(idx)}
+                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer mt-4 sm:mt-0"
+                            title="Eliminar crédito"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* CARD 4: PREVISUALIZACIÓN EN TIEMPO REAL */}
+              <div className="p-6 bg-gray-900 rounded-3xl border border-gray-800 space-y-4">
+                <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+                  <span className="text-xs font-black uppercase text-foundation-teal tracking-wider flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    Previsualización en Tiempo Real del Footer Público
+                  </span>
+                  <span className="text-[10px] bg-gray-800 text-gray-400 px-2.5 py-1 rounded-full font-extrabold uppercase">
+                    Fondo Oscuro Oficial
+                  </span>
+                </div>
+
+                <div className="bg-gray-800 p-8 rounded-2xl border-t-4 border-foundation-teal text-center space-y-2">
+                  <p className="text-xs text-white font-bold tracking-wide">
+                    {config.footer?.autoUpdateYear
+                      ? new Date().getFullYear()
+                      : (config.footer?.year || "2026")
+                    } - {config.footer?.organizationName || "Fundación Un Nuevo Comienzo C.R"}
+                  </p>
+
+                  {(config.footer?.designers && config.footer.designers.length > 0) && (
+                    <p className="text-[11px] text-gray-300 leading-normal">
+                      Diseño por{" "}
+                      <span className="text-white font-semibold">
+                        {(() => {
+                          const valid = (config.footer.designers || []).map(d => d.trim()).filter(Boolean);
+                          if (valid.length === 0) return "";
+                          if (valid.length === 1) return valid[0];
+                          if (valid.length === 2) return `${valid[0]} y ${valid[1]}`;
+                          return `${valid.slice(0, -1).join(", ")} y ${valid[valid.length - 1]}`;
+                        })()}
+                      </span>
+                    </p>
+                  )}
+
+                  {config.footer?.additionalCredits && config.footer.additionalCredits.length > 0 && (
+                    <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1 text-[11px] text-gray-400">
+                      {config.footer.additionalCredits.map((credit, idx) => (
+                        <span key={credit.id || idx}>
+                          {credit.label}: <span className="text-gray-200 font-semibold">{credit.value}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

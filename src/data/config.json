@@ -295,6 +295,18 @@
       "category": "general"
     }
   ],
+  "footer": {
+    "year": "2026",
+    "autoUpdateYear": false,
+    "organizationName": "Fundación Un Nuevo Comienzo C.R",
+    "designers": [
+      "Cristhian Martínez",
+      "Katherine Martínez",
+      "Robert Ramírez",
+      "Valeria Rojas"
+    ],
+    "additionalCredits": []
+  },
   "adminCredentials": {
     "username": "admin",
     "password": "admin123"

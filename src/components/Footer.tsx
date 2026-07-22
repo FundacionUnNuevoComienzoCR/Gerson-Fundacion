@@ -42,6 +42,35 @@ export default function Footer({ config, onNavigateToContact }: FooterProps) {
 
   const whatsappPhone = whatsapp?.phone || contact.phone;
 
+  const footerConfig = config.footer || {
+    year: "2026",
+    autoUpdateYear: false,
+    organizationName: "Fundación Un Nuevo Comienzo C.R",
+    designers: [
+      "Cristhian Martínez",
+      "Katherine Martínez",
+      "Robert Ramírez",
+      "Valeria Rojas"
+    ],
+    additionalCredits: []
+  };
+
+  const displayYear = footerConfig.autoUpdateYear
+    ? new Date().getFullYear().toString()
+    : (footerConfig.year || new Date().getFullYear().toString());
+
+  const organizationName = footerConfig.organizationName || "Fundación Un Nuevo Comienzo C.R";
+
+  const formatListWithAnd = (items: string[]) => {
+    const validItems = (items || []).map(i => i.trim()).filter(Boolean);
+    if (validItems.length === 0) return "";
+    if (validItems.length === 1) return validItems[0];
+    if (validItems.length === 2) return `${validItems[0]} y ${validItems[1]}`;
+    return `${validItems.slice(0, -1).join(", ")} y ${validItems[validItems.length - 1]}`;
+  };
+
+  const formattedDesigners = formatListWithAnd(footerConfig.designers || []);
+
   return (
     <footer className="bg-gray-800 text-gray-300 pt-16 pb-8 border-t-4 border-foundation-teal">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -260,14 +289,25 @@ export default function Footer({ config, onNavigateToContact }: FooterProps) {
 
         </div>
 
-        {/* Separator line */}
-        <div className="border-t border-gray-700 pt-8 mt-8 flex flex-col items-center justify-center text-center">
-          <p className="text-xs text-gray-400 font-medium">
-            2026 - Fundación Un Nuevo Comienzo C.R
+        {/* Separator line & Dynamic Footer Credits */}
+        <div className="border-t border-gray-700 pt-8 mt-8 flex flex-col items-center justify-center text-center space-y-2">
+          <p className="text-xs text-white font-bold tracking-wide">
+            {displayYear} - {organizationName}
           </p>
-          <p className="text-[11px] text-gray-500 mt-2 max-w-lg leading-normal">
-            Diseño por <span className="text-gray-400">Cristhian Martínez, Katherine Martínez, Robert Ramírez y Valeria Rojas</span>
-          </p>
+          {formattedDesigners && (
+            <p className="text-[11px] text-gray-300 leading-normal">
+              Diseño por <span className="text-white font-semibold">{formattedDesigners}</span>
+            </p>
+          )}
+          {footerConfig.additionalCredits && footerConfig.additionalCredits.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1 text-[11px] text-gray-400">
+              {footerConfig.additionalCredits.map((credit, idx) => (
+                <span key={credit.id || idx}>
+                  {credit.label}: <span className="text-gray-200 font-semibold">{credit.value}</span>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>

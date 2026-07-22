@@ -122,6 +122,13 @@ export interface CustomSocialLink {
   url: string;
 }
 
+export interface CustomQRItem {
+  id: string;
+  title: string;
+  data: string;
+  imageUrl?: string;
+}
+
 export interface ContactConfig {
   address: string;
   phone: string;
@@ -130,6 +137,7 @@ export interface ContactConfig {
   whatsappUrl?: string;
   wechatUrl?: string;
   lineUrl?: string;
+  telegramUrl?: string;
   facebookUrl?: string;
   instagramUrl?: string;
   tiktokUrl?: string;
@@ -139,14 +147,30 @@ export interface ContactConfig {
   whatsappQrUrl?: string;
   wechatQrUrl?: string;
   lineQrUrl?: string;
+  telegramQrUrl?: string;
   instagramQrUrl?: string;
   facebookQrUrl?: string;
   tiktokQrUrl?: string;
   customSocialLinks?: CustomSocialLink[];
+  customQrs?: CustomQRItem[];
   coordinates?: {
     lat: number;
     lng: number;
   };
+}
+
+export interface AdditionalCreditItem {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface FooterConfig {
+  year: string;
+  autoUpdateYear?: boolean;
+  organizationName: string;
+  designers: string[];
+  additionalCredits?: AdditionalCreditItem[];
 }
 
 export interface AppConfig {
@@ -174,6 +198,7 @@ export interface AppConfig {
   seo?: SEOConfig;
   globalNotice?: GlobalNoticeConfig;
   promoArts?: PromoArt[];
+  footer?: FooterConfig;
 }
 
 export interface SEOConfig {

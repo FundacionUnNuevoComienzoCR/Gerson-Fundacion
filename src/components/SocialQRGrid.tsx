@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MessageSquare, ExternalLink, QrCode, Download, Sparkles, CheckCircle2, Share2 } from "lucide-react";
+import { MessageSquare, ExternalLink, QrCode, Download, Sparkles, Printer, Copy, Check, Share2, Send } from "lucide-react";
 import { ContactConfig } from "../types";
 
 interface SocialQRGridProps {
@@ -9,11 +9,105 @@ interface SocialQRGridProps {
 
 export default function SocialQRGrid({ contact, className = "" }: SocialQRGridProps) {
   const [selectedQr, setSelectedQr] = useState<{ name: string; url: string; qrImg: string; color: string } | null>(null);
+  const [copiedStatus, setCopiedStatus] = useState<boolean>(false);
 
   const getQrUrl = (url: string, customQr?: string) => {
     if (customQr && customQr.trim().length > 0) return customQr;
     if (!url || url.trim().length === 0) return "";
     return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+  };
+
+  const handleCopyQrImage = async (name: string, url: string, qrImg: string) => {
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = qrImg;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width || 300;
+          canvas.height = img.height || 300;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                navigator.clipboard.write([
+                  new ClipboardItem({ "image/png": blob })
+                ]).then(() => {
+                  setCopiedStatus(true);
+                  setTimeout(() => setCopiedStatus(false), 3000);
+                }).catch(() => {
+                  navigator.clipboard.writeText(qrImg);
+                  setCopiedStatus(true);
+                  setTimeout(() => setCopiedStatus(false), 3000);
+                });
+              }
+            }, "image/png");
+          }
+        };
+        img.onerror = () => {
+          navigator.clipboard.writeText(qrImg);
+          setCopiedStatus(true);
+          setTimeout(() => setCopiedStatus(false), 3000);
+        };
+      } else {
+        await navigator.clipboard.writeText(qrImg);
+        setCopiedStatus(true);
+        setTimeout(() => setCopiedStatus(false), 3000);
+      }
+    } catch (e) {
+      navigator.clipboard.writeText(qrImg);
+      setCopiedStatus(true);
+      setTimeout(() => setCopiedStatus(false), 3000);
+    }
+  };
+
+  const handlePrintQr = (name: string, url: string, qrImg: string) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Por favor habilite las ventanas emergentes (pop-ups) para imprimir el código QR.");
+      return;
+    }
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Imprimir QR - ${name}</title>
+          <style>
+            body { font-family: sans-serif; text-align: center; padding: 40px; color: #111827; }
+            .card { border: 2px solid #0d9488; border-radius: 24px; padding: 32px; display: inline-block; max-width: 380px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+            .logo { font-size: 16px; font-weight: 900; color: #0d9488; text-transform: uppercase; margin-bottom: 4px; }
+            .sublogo { font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 20px; }
+            .qr-box { background: #f9fafb; padding: 16px; border-radius: 16px; border: 1px solid #e5e7eb; display: inline-block; margin-bottom: 16px; }
+            .qr-box img { width: 240px; height: 240px; object-fit: contain; }
+            .title { font-size: 18px; font-weight: 800; color: #111827; margin-bottom: 6px; }
+            .data { font-size: 12px; font-family: monospace; color: #4b5563; word-break: break-all; margin-bottom: 20px; background: #f3f4f6; padding: 6px 12px; border-radius: 8px; }
+            .footer { font-size: 11px; color: #9ca3af; font-weight: 700; text-transform: uppercase; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo">Fundación Un Nuevo Comienzo</div>
+            <div class="sublogo">Costa Rica — Canal Oficial</div>
+            <div class="title">${name}</div>
+            <div class="qr-box">
+              <img src="${qrImg}" alt="QR ${name}" />
+            </div>
+            <div class="data">${url}</div>
+            <div class="footer">Escanee con la cámara de su teléfono</div>
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 400);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const socialNetworks = [
@@ -33,6 +127,20 @@ export default function SocialQRGrid({ contact, className = "" }: SocialQRGridPr
         <MessageSquare className="w-5 h-5 text-white fill-current" />
       ),
       description: "Chat directo de atención rápida y donaciones SINPE."
+    },
+    {
+      id: "telegram",
+      name: "Telegram",
+      url: contact.telegramUrl || "",
+      qrImg: getQrUrl(contact.telegramUrl || "", contact.telegramQrUrl),
+      bgColor: "bg-[#229ED9]",
+      textColor: "text-[#229ED9]",
+      borderColor: "border-[#229ED9]/30",
+      hoverBg: "hover:bg-[#1a81b3]",
+      icon: (
+        <Send className="w-5 h-5 text-white fill-current" />
+      ),
+      description: "Canal oficial de noticias, avisos y mensajería en Telegram."
     },
     {
       id: "facebook",
@@ -85,8 +193,8 @@ export default function SocialQRGrid({ contact, className = "" }: SocialQRGridPr
     {
       id: "wechat",
       name: "WeChat",
-      url: contact.wechatUrl || "https://u.wechat.com/fundacion_cr",
-      qrImg: getQrUrl(contact.wechatUrl || "https://u.wechat.com/fundacion_cr", contact.wechatQrUrl),
+      url: contact.wechatUrl || "",
+      qrImg: getQrUrl(contact.wechatUrl || "", contact.wechatQrUrl),
       bgColor: "bg-[#07C160]",
       textColor: "text-[#07C160]",
       borderColor: "border-[#07C160]/30",
@@ -101,8 +209,8 @@ export default function SocialQRGrid({ contact, className = "" }: SocialQRGridPr
     {
       id: "line",
       name: "Line",
-      url: contact.lineUrl || "https://line.me/ti/p/~fundacion_cr",
-      qrImg: getQrUrl(contact.lineUrl || "https://line.me/ti/p/~fundacion_cr", contact.lineQrUrl),
+      url: contact.lineUrl || "",
+      qrImg: getQrUrl(contact.lineUrl || "", contact.lineQrUrl),
       bgColor: "bg-[#00B900]",
       textColor: "text-[#00B900]",
       borderColor: "border-[#00B900]/30",
@@ -116,7 +224,21 @@ export default function SocialQRGrid({ contact, className = "" }: SocialQRGridPr
     }
   ];
 
-  const activeNetworks = socialNetworks.filter(item => item.url && item.url.trim().length > 0);
+  // Append custom QRs if available
+  const customQrsList = (contact.customQrs || []).map(cq => ({
+    id: cq.id,
+    name: cq.title,
+    url: cq.data,
+    qrImg: getQrUrl(cq.data, cq.imageUrl),
+    bgColor: "bg-foundation-teal",
+    textColor: "text-foundation-teal",
+    borderColor: "border-foundation-teal/30",
+    hoverBg: "hover:bg-foundation-teal-dark",
+    icon: <QrCode className="w-5 h-5 text-white" />,
+    description: "Código QR personalizado de la Fundación."
+  }));
+
+  const activeNetworks = [...socialNetworks, ...customQrsList].filter(item => item.url && item.url.trim().length > 0);
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -209,7 +331,7 @@ export default function SocialQRGrid({ contact, className = "" }: SocialQRGridPr
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 max-w-sm w-full space-y-6 shadow-2xl border border-gray-100 dark:border-gray-800 text-center relative">
             <button
-              onClick={() => setSelectedQr(null)}
+              onClick={() => { setSelectedQr(null); setCopiedStatus(false); }}
               className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
             >
               ✕
@@ -236,7 +358,37 @@ export default function SocialQRGrid({ contact, className = "" }: SocialQRGridPr
               />
             </div>
 
-            <div className="flex flex-col gap-2">
+            {/* Actions: Copy & Print */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleCopyQrImage(selectedQr.name, selectedQr.url, selectedQr.qrImg)}
+                className="py-2.5 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                {copiedStatus ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-600">¡Copiado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copiar Imagen</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handlePrintQr(selectedQr.name, selectedQr.url, selectedQr.qrImg)}
+                className="py-2.5 px-3 bg-foundation-teal/10 hover:bg-foundation-teal/20 text-foundation-teal font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Imprimir QR</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
               <a
                 href={selectedQr.url}
                 target="_blank"
@@ -246,12 +398,6 @@ export default function SocialQRGrid({ contact, className = "" }: SocialQRGridPr
                 <ExternalLink className="w-4 h-4" />
                 <span>Abrir Enlace Directo en {selectedQr.name}</span>
               </a>
-              <button
-                onClick={() => setSelectedQr(null)}
-                className="w-full py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-extrabold text-xs rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
-              >
-                Cerrar
-              </button>
             </div>
           </div>
         </div>
