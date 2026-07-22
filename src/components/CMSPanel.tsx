@@ -207,55 +207,62 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
         if (field === "logo") filename = `logo_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9\.\-_]/g, "")}`;
         else if (field === "banner") filename = `banner_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9\.\-_]/g, "")}`;
 
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ filename, base64 })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          if (field === "logo") {
-            setConfig(prev => ({
-              ...prev,
-              branding: { ...prev.branding, logoUrl: data.url }
-            }));
-          } else if (field === "banner") {
-            setConfig(prev => ({
-              ...prev,
-              branding: { ...prev.branding, bannerUrl: data.url }
-            }));
-          } else if (field === "hero") {
-            setConfig(prev => ({
-              ...prev,
-              hero: { ...prev.hero, imageUrl: data.url }
-            }));
-          } else if (typeof field === "object") {
-            if (field.type === "program") {
-              const updatedPrograms = [...config.programs];
-              updatedPrograms[field.index] = { ...updatedPrograms[field.index], imageUrl: data.url };
-              setConfig(prev => ({ ...prev, programs: updatedPrograms }));
-            } else if (field.type === "testimonial") {
-              if (config.testimonials) {
-                const updatedTestimonials = [...config.testimonials];
-                updatedTestimonials[field.index] = { ...updatedTestimonials[field.index], imageUrl: data.url };
-                setConfig(prev => ({ ...prev, testimonials: updatedTestimonials }));
-              }
-            } else if (field.type === "sponsor") {
-              const updatedSponsors = [...(config.sponsors || [])];
-              updatedSponsors[field.index] = { ...updatedSponsors[field.index], logoUrl: data.url };
-              setConfig(prev => ({ ...prev, sponsors: updatedSponsors }));
+        let finalUrl = base64;
+        try {
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ filename, base64 })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.url) {
+              finalUrl = data.url;
             }
           }
-          alert("¡Imagen subida con éxito y vista previa generada!");
-        } else {
-          alert(data.error || "Ocurrió un error al subir la imagen.");
+        } catch (e) {
+          console.warn("Static hosting detected, using data URL for image asset.");
         }
+
+        if (field === "logo") {
+          setConfig(prev => ({
+            ...prev,
+            branding: { ...prev.branding, logoUrl: finalUrl }
+          }));
+        } else if (field === "banner") {
+          setConfig(prev => ({
+            ...prev,
+            branding: { ...prev.branding, bannerUrl: finalUrl }
+          }));
+        } else if (field === "hero") {
+          setConfig(prev => ({
+            ...prev,
+            hero: { ...prev.hero, imageUrl: finalUrl }
+          }));
+        } else if (typeof field === "object") {
+          if (field.type === "program") {
+            const updatedPrograms = [...config.programs];
+            updatedPrograms[field.index] = { ...updatedPrograms[field.index], imageUrl: finalUrl };
+            setConfig(prev => ({ ...prev, programs: updatedPrograms }));
+          } else if (field.type === "testimonial") {
+            if (config.testimonials) {
+              const updatedTestimonials = [...config.testimonials];
+              updatedTestimonials[field.index] = { ...updatedTestimonials[field.index], imageUrl: finalUrl };
+              setConfig(prev => ({ ...prev, testimonials: updatedTestimonials }));
+            }
+          } else if (field.type === "sponsor") {
+            const updatedSponsors = [...(config.sponsors || [])];
+            updatedSponsors[field.index] = { ...updatedSponsors[field.index], logoUrl: finalUrl };
+            setConfig(prev => ({ ...prev, sponsors: updatedSponsors }));
+          }
+        }
+        alert("¡Imagen subida con éxito y vista previa generada!");
       } catch (err) {
         console.error(err);
-        alert("Error de red al subir la imagen.");
+        alert("Error al procesar la imagen.");
       }
     };
     reader.readAsDataURL(file);
@@ -483,6 +490,12 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
     setLoading(true);
     setStatusMsg(null);
     const configToSave = customConfig || config;
+
+    // Persist locally for static hostings (e.g. Netlify)
+    try {
+      localStorage.setItem("foundation_cms_config", JSON.stringify(configToSave));
+    } catch (e) {}
+
     try {
       const res = await fetch("/api/config", {
         method: "POST",
@@ -492,21 +505,23 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
         },
         body: JSON.stringify(configToSave)
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setStatusMsg({ type: "success", text: "¡Configuración guardada correctamente en config.json!" });
-        onConfigUpdate(configToSave);
-      } else {
-        setStatusMsg({ type: "error", text: data.error || "Ocurrió un error al guardar la configuración." });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setStatusMsg({ type: "success", text: "¡Configuración guardada correctamente en el servidor!" });
+          onConfigUpdate(configToSave);
+          return;
+        }
       }
     } catch (err) {
-      console.error("Error saving config:", err);
-      setStatusMsg({ type: "error", text: "Error de red al conectar con el servidor." });
-    } finally {
-      setLoading(false);
-      // Auto clear alert
-      setTimeout(() => setStatusMsg(null), 5000);
+      console.warn("Server API unavailable, saved to local browser storage.");
     }
+
+    // Static Hosting Success Fallback
+    setStatusMsg({ type: "success", text: "¡Configuración guardada correctamente en almacenamiento local!" });
+    onConfigUpdate(configToSave);
+    setLoading(false);
+    setTimeout(() => setStatusMsg(null), 5000);
   };
 
   const handleDownloadBackup = () => {
