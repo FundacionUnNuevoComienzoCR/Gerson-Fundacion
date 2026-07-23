@@ -17,14 +17,15 @@ export async function getSqlDatabase(): Promise<Database> {
   }
 
   const wasmPath = path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm");
-  const SQL = await initSqlJs({
-    locateFile: (file) => {
-      if (fs.existsSync(wasmPath)) {
-        return wasmPath;
-      }
-      return file;
+  let sqlJsConfig: any = {};
+  if (fs.existsSync(wasmPath)) {
+    try {
+      sqlJsConfig.wasmBinary = fs.readFileSync(wasmPath);
+    } catch (e) {
+      sqlJsConfig.locateFile = () => wasmPath;
     }
-  });
+  }
+  const SQL = await initSqlJs(sqlJsConfig);
 
   if (fs.existsSync(dbFilePath)) {
     try {
