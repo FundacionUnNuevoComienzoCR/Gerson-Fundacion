@@ -870,31 +870,23 @@ export default function CMSPanel({ initialConfig, token, onConfigUpdate }: CMSPa
         setLoading(false);
         setTimeout(() => setStatusMsg(null), 7000);
         return;
+      } else {
+        setLoading(false);
+        setStatusMsg({
+          type: "error",
+          text: data?.error || "Error en guardado: No se pudo sincronizar la base de datos SQL."
+        });
+        return;
       }
     } catch (err) {
-      console.warn("Server API fallback to local storage:", err);
+      console.error("Save error:", err);
+      setLoading(false);
+      setStatusMsg({
+        type: "error",
+        text: "Error en guardado: No se pudo sincronizar la base de datos SQL."
+      });
+      return;
     }
-
-    // Fallback Success
-    const fallbackDeploy = {
-      id: "deploy-local-" + Date.now(),
-      commitMessage: "feat: update CMS content",
-      commitHash: Math.random().toString(36).substring(2, 9),
-      savedToCMS: true,
-      cmsSavedAt: new Date().toISOString(),
-      deployStatus: "success",
-      deployedAt: new Date().toISOString(),
-      provider: "Netlify",
-      details: "Guardado en almacenamiento SQL y deploy en Netlify procesado exitosamente."
-    };
-    setDeployments(prev => [fallbackDeploy, ...prev]);
-    setStatusMsg({ 
-      type: "success", 
-      text: "Cambios guardados y publicados" 
-    });
-    onConfigUpdate(configToSave);
-    setLoading(false);
-    setTimeout(() => setStatusMsg(null), 7000);
   };
 
   const handleDownloadBackup = () => {

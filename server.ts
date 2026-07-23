@@ -76,7 +76,7 @@ async function startServer() {
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
 
-      let defaultConfig: any = {};
+      let defaultConfig: any = null;
       if (fs.existsSync(configPath)) {
         try {
           const raw = fs.readFileSync(configPath, "utf8");
@@ -84,9 +84,13 @@ async function startServer() {
         } catch (e) {}
       }
 
-      // Query latest configuration directly from SQL database
+      // Query latest configuration directly from SQL database table cms_config
       const sqlConfig = await getConfigFromSQL(defaultConfig);
       const activeConfig = sqlConfig || defaultConfig;
+
+      if (!activeConfig) {
+        return res.status(404).json({ error: "No se encontró la configuración en la base SQL." });
+      }
 
       // Do not expose admin credentials to public GET request
       const { adminCredentials, ...publicConfig } = activeConfig;
@@ -117,13 +121,14 @@ async function startServer() {
         });
       }
 
-      let currentConfig: any = {};
-      if (fs.existsSync(configPath)) {
-        const raw = fs.readFileSync(configPath, "utf8");
+      let currentConfig: any = await getConfigFromSQL(null);
+      if (!currentConfig && fs.existsSync(configPath)) {
         try {
+          const raw = fs.readFileSync(configPath, "utf8");
           currentConfig = JSON.parse(raw);
         } catch (e) {}
       }
+      currentConfig = currentConfig || {};
 
       // Merge incoming updates
       const updatedConfig = {
@@ -133,29 +138,30 @@ async function startServer() {
         adminCredentials: req.body.adminCredentials || currentConfig.adminCredentials
       };
 
-      // 2. Save directly to SQL Database (cms.sqlite) and backup file
-      let sqlSaved = false;
-      try {
-        sqlSaved = await saveConfigToSQL(updatedConfig);
-      } catch (e) {
-        console.warn("SQL save warning:", e);
+      // 2. Save directly to SQL Database (cms.sqlite) FIRST
+      const sqlSaved = await saveConfigToSQL(updatedConfig);
+
+      // Verify that SQL save succeeded
+      if (!sqlSaved) {
+        return res.status(500).json({
+          success: false,
+          error: "Error en guardado: No se pudo sincronizar la base de datos SQL.",
+          details: "No se pudo escribir en el archivo de la base de datos SQL (cms.sqlite)."
+        });
       }
 
-      // Backup to config.json file
+      // Mirror to config.json as static fallback for Netlify builds
       try {
         fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2), "utf8");
       } catch (e) {
-        console.warn("JSON backup save warning:", e);
+        console.warn("Mirror backup write warning:", e);
       }
-
-      // Verify that save succeeded in SQL or file system
-      const cmsVerified = true;
 
       // 3. Automatic Git Commit ("feat: update CMS content")
       let gitHash = "";
       let commitMessage = "feat: update CMS content";
       try {
-        execSync('git add src/data/config.json src/data/cms.sqlite', { stdio: 'ignore' });
+        execSync('git add src/data/cms.sqlite src/data/config.json', { stdio: 'ignore' });
         execSync(`git commit -m "${commitMessage}"`, { stdio: 'ignore' });
         gitHash = execSync('git rev-parse --short HEAD').toString().trim();
       } catch (gitErr) {
@@ -163,7 +169,6 @@ async function startServer() {
       }
 
       // 4. Netlify Deploy Status
-      const deployStatus = "success";
       const deployRecord = {
         id: "deploy-" + Date.now(),
         commitMessage,
@@ -202,7 +207,11 @@ async function startServer() {
       });
     } catch (err: any) {
       console.error("Error saving config to SQL database:", err);
-      res.status(500).json({ error: "Error en guardado", details: err.message });
+      res.status(500).json({ 
+        success: false,
+        error: "Error en guardado: No se pudo sincronizar la base de datos SQL.", 
+        details: err.message 
+      });
     }
   });
 
