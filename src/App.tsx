@@ -32,6 +32,7 @@ import BlurUpImage from "./components/BlurUpImage";
 import GlobalNotice from "./components/GlobalNotice";
 import { ProgramSkeleton, GallerySkeleton, TestimonialSkeleton } from "./components/Skeleton";
 import { AppConfig, Program, Founder } from "./types";
+import { getDirectDriveImageUrl } from "./utils/drive";
 import defaultConfigData from "./data/config.json";
 
 export default function App() {

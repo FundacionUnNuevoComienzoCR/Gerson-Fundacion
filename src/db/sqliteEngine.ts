@@ -16,11 +16,24 @@ export async function getSqlDatabase(): Promise<Database> {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  const SQL = await initSqlJs();
+  const wasmPath = path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm");
+  const SQL = await initSqlJs({
+    locateFile: (file) => {
+      if (fs.existsSync(wasmPath)) {
+        return wasmPath;
+      }
+      return file;
+    }
+  });
 
   if (fs.existsSync(dbFilePath)) {
-    const fileBuffer = fs.readFileSync(dbFilePath);
-    dbInstance = new SQL.Database(fileBuffer);
+    try {
+      const fileBuffer = fs.readFileSync(dbFilePath);
+      dbInstance = new SQL.Database(fileBuffer);
+    } catch (e) {
+      console.warn("Could not read existing cms.sqlite file, creating fresh database instance.");
+      dbInstance = new SQL.Database();
+    }
   } else {
     dbInstance = new SQL.Database();
   }
@@ -159,70 +172,86 @@ export async function saveConfigToSQL(config: any): Promise<boolean> {
       [jsonStr, updatedAt]
     );
 
-    // 2. Sync Founders into SQL founders table
-    if (Array.isArray(config.founders)) {
-      db.run("DELETE FROM founders");
-      config.founders.forEach((founder: any, idx: number) => {
+    // 2. Sync Founders into SQL founders table safely
+    try {
+      if (Array.isArray(config.founders)) {
+        db.run("DELETE FROM founders");
+        config.founders.forEach((founder: any, idx: number) => {
+          db.run(
+            `INSERT INTO founders (id, name, role, description, image_url, active, position)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+              founder.id || `founder-${Date.now()}-${idx}`,
+              founder.name || "",
+              founder.role || "",
+              founder.description || "",
+              founder.imageUrl || "",
+              founder.active !== false ? 1 : 0,
+              idx
+            ]
+          );
+        });
+      }
+    } catch (e) {
+      console.warn("Minor warning syncing founders table:", e);
+    }
+
+    // 3. Sync Testimonials into SQL testimonials table safely
+    try {
+      if (Array.isArray(config.testimonials)) {
+        db.run("DELETE FROM testimonials");
+        config.testimonials.forEach((t: any, idx: number) => {
+          db.run(
+            `INSERT INTO testimonials (id, name, role, text, image_url, active, position)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+              t.id || `testimony-${Date.now()}-${idx}`,
+              t.name || "",
+              t.role || "",
+              t.text || "",
+              t.imageUrl || "",
+              t.active !== false ? 1 : 0,
+              idx
+            ]
+          );
+        });
+      }
+    } catch (e) {
+      console.warn("Minor warning syncing testimonials table:", e);
+    }
+
+    // 4. Sync Footer into SQL footer_config table safely
+    try {
+      if (config.footer) {
         db.run(
-          `INSERT INTO founders (id, name, role, description, image_url, active, position)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT OR REPLACE INTO footer_config (id, year, organization_name, designers_json)
+           VALUES (1, ?, ?, ?)`,
           [
-            founder.id || `f-${idx}`,
-            founder.name || "",
-            founder.role || "",
-            founder.description || "",
-            founder.imageUrl || "",
-            founder.active !== false ? 1 : 0,
-            idx
+            config.footer.year || "2026",
+            config.footer.organizationName || "Fundación Un Nuevo Comienzo C.R",
+            JSON.stringify(config.footer.designers || [])
           ]
         );
-      });
+      }
+    } catch (e) {
+      console.warn("Minor warning syncing footer table:", e);
     }
 
-    // 3. Sync Testimonials into SQL testimonials table
-    if (Array.isArray(config.testimonials)) {
-      db.run("DELETE FROM testimonials");
-      config.testimonials.forEach((t: any, idx: number) => {
+    // 5. Sync QRs into SQL qrs table safely
+    try {
+      db.run("DELETE FROM qrs");
+      if (config.branding?.corporateQrUrl) {
         db.run(
-          `INSERT INTO testimonials (id, name, role, text, image_url, active, position)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [
-            t.id || `t-${idx}`,
-            t.name || "",
-            t.role || "",
-            t.text || "",
-            t.imageUrl || "",
-            t.active !== false ? 1 : 0,
-            idx
-          ]
+          `INSERT INTO qrs (id, title, sinpe_number, holder, qr_image_url, active)
+           VALUES ('qr-main', 'Código QR Institucional', ?, ?, ?, 1)`,
+          [config.sinpe?.phone || "", config.sinpe?.holder || "", config.branding.corporateQrUrl]
         );
-      });
+      }
+    } catch (e) {
+      console.warn("Minor warning syncing QRs table:", e);
     }
 
-    // 4. Sync Footer into SQL footer_config table
-    if (config.footer) {
-      db.run(
-        `INSERT OR REPLACE INTO footer_config (id, year, organization_name, designers_json)
-         VALUES (1, ?, ?, ?)`,
-        [
-          config.footer.year || "2026",
-          config.footer.organizationName || "Fundación Un Nuevo Comienzo C.R",
-          JSON.stringify(config.footer.designers || [])
-        ]
-      );
-    }
-
-    // 5. Sync QRs into SQL qrs table
-    db.run("DELETE FROM qrs");
-    if (config.branding?.corporateQrUrl) {
-      db.run(
-        `INSERT INTO qrs (id, title, sinpe_number, holder, qr_image_url, active)
-         VALUES ('qr-main', 'Código QR Institucional', ?, ?, ?, 1)`,
-        [config.sinpe?.phone || "", config.sinpe?.holder || "", config.branding.corporateQrUrl]
-      );
-    }
-
-    // Save SQLite state to disk
+    // Save SQLite state to disk file
     saveDatabaseToFile(db);
     return true;
   } catch (err) {
